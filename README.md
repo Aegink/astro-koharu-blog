@@ -1,6 +1,7 @@
+# 正在拿大佬的模板改造，现在是半成品，感谢大佬，多多关照大佬的博客![](https://blog.cosine.ren)
 # astro-koharu
 
-**Language:** **中文** | [English](./docs/README.en.md) | [日本語](./docs/README.ja.md)
+**Language:** **中文** | [英语](./docs/README.en.md) | [日本語](./docs/README.ja.md)
 
 ![](https://r2.cosine.ren/i/2026/01/94383107ba4586f773938ed4dae34ff1.webp)
 
