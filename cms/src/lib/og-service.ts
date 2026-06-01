@@ -24,6 +24,8 @@ interface CacheData {
   [url: string]: CacheEntry;
 }
 
+import { cmsFetch } from './auth';
+
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 // In-memory cache for client-side
@@ -34,7 +36,7 @@ let memoryCache: CacheData = {};
  */
 export async function loadCache(): Promise<CacheData> {
   try {
-    const response = await fetch('/api/cms/og-cache');
+    const response = await cmsFetch('/api/cms/og-cache');
     if (response.ok) {
       memoryCache = await response.json();
       return memoryCache;
@@ -73,7 +75,7 @@ export function updateMemoryCache(url: string, data: OGData): void {
  */
 export async function fetchOGData(url: string): Promise<OGData> {
   try {
-    const response = await fetch(`/api/cms/og-data?url=${encodeURIComponent(url)}`);
+    const response = await cmsFetch(`/api/cms/og-data?url=${encodeURIComponent(url)}`);
 
     if (!response.ok) {
       throw new Error(`API responded with ${response.status}`);

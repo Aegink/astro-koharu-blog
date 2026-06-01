@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/admin/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -11,6 +12,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: '../dist/admin',
+    emptyOutDir: true,
   },
 });

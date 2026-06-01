@@ -15,6 +15,7 @@ import type {
   ToggleDraftResponse,
   ToggleStickyResponse,
 } from '@/types';
+import { cmsFetch } from './auth';
 import { setCategoryMap } from './category';
 
 /**
@@ -99,7 +100,7 @@ function prepareFrontmatterForApi(frontmatter: BlogSchema): Record<string, unkno
  * @throws Error if the request fails
  */
 export async function readPost(postId: string): Promise<ReadPostResult> {
-  const response = await fetch(`/api/cms/read?postId=${encodeSlug(postId)}`);
+  const response = await cmsFetch(`/api/cms/read?postId=${encodeSlug(postId)}`);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -134,7 +135,7 @@ export async function writePost(
   content: string,
   categoryMappings?: Record<string, string>,
 ): Promise<void> {
-  const response = await fetch('/api/cms/write', {
+  const response = await cmsFetch('/api/cms/write', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -172,7 +173,7 @@ export async function listPosts(params?: ListPostsParams): Promise<ListPostsResp
   const queryString = searchParams.toString();
   const url = `/api/cms/list${queryString ? `?${queryString}` : ''}`;
 
-  const response = await fetch(url);
+  const response = await cmsFetch(url);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -189,7 +190,7 @@ export async function listPosts(params?: ListPostsParams): Promise<ListPostsResp
  * @returns The created post ID
  */
 export async function createPost(params: CreatePostParams): Promise<CreatePostResponse> {
-  const response = await fetch('/api/cms/create', {
+  const response = await cmsFetch('/api/cms/create', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -212,7 +213,7 @@ export async function createPost(params: CreatePostParams): Promise<CreatePostRe
  * @returns The new draft status
  */
 export async function toggleDraft(postId: string): Promise<ToggleDraftResponse> {
-  const response = await fetch('/api/cms/toggle-draft', {
+  const response = await cmsFetch('/api/cms/toggle-draft', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -235,7 +236,7 @@ export async function toggleDraft(postId: string): Promise<ToggleDraftResponse> 
  * @returns The new sticky status
  */
 export async function toggleSticky(postId: string): Promise<ToggleStickyResponse> {
-  const response = await fetch('/api/cms/toggle-sticky', {
+  const response = await cmsFetch('/api/cms/toggle-sticky', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -274,7 +275,7 @@ export async function getCMSConfig(): Promise<CMSConfigResponse> {
     return cachedConfig;
   }
 
-  const response = await fetch('/api/cms/config');
+  const response = await cmsFetch('/api/cms/config');
 
   if (!response.ok) {
     throw new Error('Failed to fetch CMS config');

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { type CustomCategory, useCustomCategories } from '@/hooks/useCustomCategories';
+import { cmsFetch } from '@/lib/auth';
 import { type CreatePostFormData, createPostSchema } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 
@@ -138,7 +139,7 @@ export function CreatePostDialog({ open, onOpenChange, existingCategories, onSuc
       // Get custom category mappings
       const categoryMappings = getCategoryMappings();
 
-      const response = await fetch('/api/cms/create', {
+      const response = await cmsFetch('/api/cms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { useEditorHeadings } from '@/hooks';
 import { readPost, writePost } from '@/lib/api';
 import { detectNewCategories, getCategoryMap, setCategoryMap } from '@/lib/category';
-import { DEV_SERVER_URL } from '@/lib/config';
+import { DEV_SERVER_URL } from '@/lib/client-config';
 import { cn } from '@/lib/utils';
 import type { BlogSchema } from '@/types';
 

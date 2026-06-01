@@ -10,7 +10,7 @@
     "generate:summaries": "npx tsx src/scripts/generateSummaries.ts",
     "generate:summaries:force": "npx tsx src/scripts/generateSummaries.ts --force",
     "generate:all": "npm run generate:lqips && npm run generate:summaries && npm run generate:similarities",
-    "build": "astro build",
+    "build": "npm run build:site && npm run build:cms",
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
@@ -31,7 +31,9 @@
     "docker:up": "docker compose --env-file ./.env -f docker/docker-compose.yml up -d --build",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
-    "docker:rebuild": "bash docker/rebuild.sh"
+    "docker:rebuild": "bash docker/rebuild.sh",
+    "build:site": "astro build",
+    "build:cms": "corepack pnpm --dir cms install --frozen-lockfile && corepack pnpm --dir cms build"
   },
   "dependencies": {
     "@antv/infographic": "^0.2.4",

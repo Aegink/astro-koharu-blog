@@ -5,6 +5,7 @@
  */
 
 import { Icon } from '@iconify/react';
+import { useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'sonner';
 import {
@@ -18,11 +19,58 @@ import {
 } from '@/components';
 import { Button } from '@/components/ui/button';
 import { type StatusFilter, useDashboardState } from '@/hooks';
+import { clearCmsPassword, getCmsPassword, setCmsPassword } from '@/lib/auth';
 import { MAX_CATEGORY_DISPLAY, MAX_RECENT_POSTS_DISPLAY } from '@/lib/paths';
 import { cn } from '@/lib/utils';
 
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = password.trim();
+    if (!trimmed) return;
+    setCmsPassword(trimmed);
+    onLogin();
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="rounded-xl bg-primary/10 p-3 text-primary">
+            <Icon icon="ri:lock-password-line" className="size-6" />
+          </div>
+          <div>
+            <h1 className="font-semibold text-xl">Koharu CMS</h1>
+            <p className="text-muted-foreground text-sm">Online admin console</p>
+          </div>
+        </div>
+
+        <label htmlFor="cms-password" className="mb-2 block font-medium text-sm">
+          Admin password
+        </label>
+        <input
+          id="cms-password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          placeholder="Enter CMS_ADMIN_PASSWORD"
+          className="mb-4 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+
+        <Button type="submit" className="w-full" disabled={!password.trim()}>
+          <Icon icon="ri:login-circle-line" className="mr-1.5 size-4" />
+          Sign in
+        </Button>
+      </form>
+    </div>
+  );
+}
+
 // Main App Content
-function AppContent() {
+function AppContent({ onLogout }: { onLogout: () => void }) {
   const {
     activeTab,
     setActiveTab,
@@ -46,7 +94,6 @@ function AppContent() {
     handleToggleSticky,
     handleCreatePostSuccess,
     handleEditPost,
-    handleOpenInEditor,
     handleEditorClose,
     handleEditorSaved,
   } = useDashboardState();
@@ -58,8 +105,6 @@ function AppContent() {
 
   return (
     <>
-      <Toaster position="top-right" richColors />
-
       <div className="flex min-h-screen flex-col">
         {/* Header */}
         <header className="border-border border-b bg-card">
@@ -67,7 +112,7 @@ function AppContent() {
             <div className="flex items-center gap-2">
               <Icon icon="ri:dashboard-3-line" className="size-6" />
               <h1 className="font-semibold text-xl">Koharu CMS</h1>
-              <span className="rounded bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">DEV</span>
+              <span className="rounded bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">ONLINE</span>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
@@ -80,6 +125,10 @@ function AppContent() {
               <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
                 <Icon icon="ri:add-line" className="mr-1.5 size-4" />
                 New Post
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onLogout}>
+                <Icon icon="ri:logout-circle-r-line" className="mr-1.5 size-4" />
+                Sign out
               </Button>
             </div>
           </div>
@@ -215,7 +264,6 @@ function AppContent() {
                       onToggleDraft={handleToggleDraft}
                       onToggleSticky={handleToggleSticky}
                       onEdit={handleEditPost}
-                      onOpenInEditor={handleOpenInEditor}
                     />
                   </div>
                 )}
@@ -237,9 +285,17 @@ function AppContent() {
 }
 
 export function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getCmsPassword()));
+
+  const handleLogout = () => {
+    clearCmsPassword();
+    setIsAuthenticated(false);
+  };
+
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <AppContent />
+      <Toaster position="top-right" richColors />
+      {isAuthenticated ? <AppContent onLogout={handleLogout} /> : <LoginScreen onLogin={() => setIsAuthenticated(true)} />}
     </ErrorBoundary>
   );
 }
