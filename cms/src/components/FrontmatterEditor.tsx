@@ -10,7 +10,9 @@ import { Icon } from '@iconify/react';
 import { format, isValid, parse } from 'date-fns';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { uploadImage } from '@/lib/api';
 import { type FrontmatterFormData, frontmatterSchema } from '@/lib/schemas';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { BlogSchema } from '@/types';
 
@@ -243,6 +245,7 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
   ref,
 ) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const form = useForm<FrontmatterFormData>({
     resolver: zodResolver(frontmatterSchema),
@@ -268,6 +271,7 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
   const {
     register,
     watch,
+    setValue,
     formState: { errors, isDirty },
   } = form;
 
@@ -277,6 +281,22 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
     isDirty: () => isDirty,
   }));
 
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const result = await uploadImage(file);
+      setValue('cover', result.url, { shouldDirty: true, shouldValidate: true });
+      toast.success('Cover image uploaded');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to upload image');
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
   // Watch for changes and notify parent
   useEffect(() => {
     const subscription = watch((values) => {
@@ -336,13 +356,32 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
 
         <FormField label="Tags" id="tags" placeholder="tag1, tag2, tag3" error={errors.tags?.message} {...register('tags')} />
 
-        <FormField
-          label="Cover Image"
-          id="cover"
-          placeholder="https://example.com/image.jpg"
-          error={errors.cover?.message}
-          {...register('cover')}
-        />
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="cover" className="font-medium text-muted-foreground text-xs">
+              Cover Image
+            </label>
+            <label className="inline-flex cursor-pointer items-center rounded border border-input bg-background px-2 py-1 text-xs transition-colors hover:bg-background/70">
+              <Icon
+                icon={isUploadingCover ? 'ri:loader-4-line' : 'ri:upload-2-line'}
+                className={cn('mr-1 size-3.5', isUploadingCover && 'animate-spin')}
+              />
+              {isUploadingCover ? 'Uploading' : 'Upload'}
+              <input type="file" accept="image/*" className="hidden" disabled={isUploadingCover} onChange={handleCoverUpload} />
+            </label>
+          </div>
+          <input
+            id="cover"
+            placeholder="/img/cms/cover.webp or https://example.com/image.jpg"
+            className={cn(
+              'w-full rounded border border-input bg-background px-2 py-1.5 text-sm',
+              'focus:outline-none focus:ring-1 focus:ring-ring',
+              errors.cover && 'border-destructive',
+            )}
+            {...register('cover')}
+          />
+          {errors.cover?.message && <p className="text-destructive text-xs">{errors.cover.message}</p>}
+        </div>
 
         <FormField
           label="External Link"

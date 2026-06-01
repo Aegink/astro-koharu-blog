@@ -8,7 +8,7 @@ import {
   readFile,
   updateCategoryMappings,
   writeFile,
-} from '../../../_lib/online-cms';
+} from '../../_lib/online-cms';
 
 type WriteBody = {
   postId: string;

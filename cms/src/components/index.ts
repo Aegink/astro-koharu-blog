@@ -16,3 +16,4 @@ export { MarkdownPreview } from './MarkdownPreview';
 export { PostEditor } from './PostEditor';
 export { PostTable } from './PostTable';
 export { RecentUpdates } from './RecentUpdates';
+export { SiteConfigEditor } from './SiteConfigEditor';

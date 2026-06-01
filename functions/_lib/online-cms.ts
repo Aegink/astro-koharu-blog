@@ -100,6 +100,19 @@ export async function writeFile(env: Env, filePath: string, content: string, mes
   });
 }
 
+
+export async function writeBase64File(env: Env, filePath: string, base64Content: string, message: string, sha?: string) {
+  const { owner, name, branch } = repo(env);
+  const body: Record<string, unknown> = { message, content: base64Content, branch };
+  if (sha) body.sha = sha;
+  if (env.GITHUB_COMMITTER_NAME && env.GITHUB_COMMITTER_EMAIL) {
+    body.committer = { name: env.GITHUB_COMMITTER_NAME, email: env.GITHUB_COMMITTER_EMAIL };
+  }
+  return gh(env, `/repos/${owner}/${name}/contents/${encodePath(filePath)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
 export function isSafeMarkdownPath(postId: string): boolean {
   return !postId.startsWith('/') && !postId.includes('..') && !postId.includes('\\') && /\.mdx?$/.test(postId);
 }

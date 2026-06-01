@@ -8,7 +8,7 @@ import {
   listMarkdownFiles,
   parseMatter,
   readFile,
-} from '../../../_lib/online-cms';
+} from '../../_lib/online-cms';
 
 type PostListItem = {
   id: string;

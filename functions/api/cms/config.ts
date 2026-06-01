@@ -1,4 +1,4 @@
-import { checkAuth, CONTENT_DIR, type Env, getCategoryMap, json } from '../../../_lib/online-cms';
+import { checkAuth, CONTENT_DIR, type Env, getCategoryMap, json } from '../../_lib/online-cms';
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
   try {

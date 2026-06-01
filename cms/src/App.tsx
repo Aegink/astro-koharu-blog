@@ -16,6 +16,7 @@ import {
   PostEditor,
   PostTable,
   RecentUpdates,
+  SiteConfigEditor,
 } from '@/components';
 import { Button } from '@/components/ui/button';
 import { type StatusFilter, useDashboardState } from '@/hooks';
@@ -138,7 +139,7 @@ function AppContent({ onLogout }: { onLogout: () => void }) {
         <div className="border-border border-b bg-card">
           <div className="mx-auto max-w-7xl px-6">
             <div className="flex gap-4">
-              {(['overview', 'posts'] as const).map((tab) => (
+              {(['overview', 'posts', 'config'] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -189,6 +190,8 @@ function AppContent({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </div>
                 )}
+
+                {activeTab === 'config' && <SiteConfigEditor />}
 
                 {activeTab === 'posts' && (
                   <div className="space-y-4">

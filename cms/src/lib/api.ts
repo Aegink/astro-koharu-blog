@@ -289,3 +289,52 @@ export async function getCMSConfig(): Promise<CMSConfigResponse> {
 
   return config;
 }
+export interface UploadImageResponse {
+  success: boolean;
+  path: string;
+  url: string;
+}
+
+export async function uploadImage(file: File): Promise<UploadImageResponse> {
+  const formData = new FormData();
+  formData.set('file', file);
+
+  const response = await cmsFetch('/api/cms/upload-image', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to upload image: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function readSiteConfig(): Promise<string> {
+  const response = await cmsFetch('/api/cms/site-config');
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to read site config: ${response.status}`);
+  }
+
+  const data = (await response.json()) as { content: string };
+  return data.content;
+}
+
+export async function writeSiteConfig(content: string): Promise<void> {
+  const response = await cmsFetch('/api/cms/site-config', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to write site config: ${response.status}`);
+  }
+}

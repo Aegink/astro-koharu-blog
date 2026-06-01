@@ -8,7 +8,7 @@ import {
   slugify,
   updateCategoryMappings,
   writeFile,
-} from '../../../_lib/online-cms';
+} from '../../_lib/online-cms';
 
 type CreateBody = {
   title: string;

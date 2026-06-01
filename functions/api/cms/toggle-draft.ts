@@ -1,4 +1,4 @@
-import { checkAuth, CONTENT_DIR, dumpMatter, type Env, isSafeMarkdownPath, json, parseMatter, readFile, writeFile } from '../../../_lib/online-cms';
+import { checkAuth, CONTENT_DIR, dumpMatter, type Env, isSafeMarkdownPath, json, parseMatter, readFile, writeFile } from '../../_lib/online-cms';
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   try {
