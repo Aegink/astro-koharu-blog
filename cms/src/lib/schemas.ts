@@ -45,7 +45,7 @@ export const frontmatterSchema = z.object({
  */
 export const categorySlugSchema = z
   .string()
-  .min(1, 'Slug 不能为空')
+  .min(1, '分类路径不能为空')
   .regex(/^[a-z0-9-]+$/, '只允许小写字母、数字和连字符');
 
 /**

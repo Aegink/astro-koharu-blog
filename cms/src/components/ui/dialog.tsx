@@ -64,11 +64,11 @@ const DialogContent = forwardRef<React.ComponentRef<typeof DialogPrimitive.Conte
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <title>Close</title>
+              <title>关闭</title>
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
-            <span className="sr-only">Close</span>
+            <span className="sr-only">关闭</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>

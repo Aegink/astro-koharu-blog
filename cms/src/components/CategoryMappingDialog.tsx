@@ -79,7 +79,7 @@ export function CategoryMappingDialog({ open, onOpenChange, newCategories, onCon
     }
   };
 
-  const handleRegenerate = (name: string) => {
+  const handle重新生成 = (name: string) => {
     const newSlug = generateCategorySlug(name);
     setValue(name, newSlug);
   };
@@ -92,10 +92,10 @@ export function CategoryMappingDialog({ open, onOpenChange, newCategories, onCon
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Icon icon="ri:folder-add-line" className="size-5 text-primary" />
-            New Categories Detected
+            检测到新分类
           </DialogTitle>
           <DialogDescription>
-            The following categories are not in your site configuration. Please provide URL-friendly slugs for them.
+            下面这些分类还没有配置 URL 路径。请为它们填写英文路径，用于生成分类页链接。
           </DialogDescription>
         </DialogHeader>
 
@@ -109,12 +109,12 @@ export function CategoryMappingDialog({ open, onOpenChange, newCategories, onCon
                   </label>
                   <button
                     type="button"
-                    onClick={() => handleRegenerate(name)}
+                    onClick={() => handle重新生成(name)}
                     className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
-                    title="Regenerate slug"
+                    title="重新生成路径"
                   >
                     <Icon icon="ri:refresh-line" className="size-3.5" />
-                    Regenerate
+                    重新生成
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
@@ -139,24 +139,24 @@ export function CategoryMappingDialog({ open, onOpenChange, newCategories, onCon
           <div className="rounded-lg bg-muted/50 p-3">
             <p className="text-muted-foreground text-xs">
               <Icon icon="ri:information-line" className="mr-1 inline size-3.5" />
-              Slugs should be lowercase and contain only letters, numbers, and hyphens (e.g., "front-end").
+              分类路径建议使用小写英文字母、数字和连字符，例如 "front-end"。
             </p>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
-              Cancel
+              取消
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Icon icon="ri:loader-4-line" className="mr-1.5 size-4 animate-spin" />
-                  Saving...
+                  正在保存...
                 </>
               ) : (
                 <>
                   <Icon icon="ri:check-line" className="mr-1.5 size-4" />
-                  Confirm Mappings
+                  确认分类路径
                 </>
               )}
             </Button>

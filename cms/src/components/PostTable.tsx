@@ -60,7 +60,7 @@ export function PostTable({
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-border border-dashed p-8 text-center">
         <Icon icon="ri:file-list-3-line" className="size-12 text-muted-foreground" />
-        <p className="mt-2 font-medium text-muted-foreground">No posts found</p>
+        <p className="mt-2 font-medium text-muted-foreground">没有找到文章</p>
       </div>
     );
   }
@@ -72,22 +72,22 @@ export function PostTable({
           <thead className="border-border border-b bg-muted/50">
             <tr>
               <th className="px-4 py-3 text-left">
-                <SortableHeader label="Title" field="title" sortField={sortField} sortOrder={sortOrder} onSort={onSort} />
+                <SortableHeader label="标题" field="title" sortField={sortField} sortOrder={sortOrder} onSort={onSort} />
               </th>
               <th className="hidden px-4 py-3 text-left md:table-cell">
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Category</span>
+                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">分类</span>
               </th>
               <th className="hidden px-4 py-3 text-left lg:table-cell">
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Tags</span>
+                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">标签</span>
               </th>
               <th className="px-4 py-3 text-left">
-                <SortableHeader label="Date" field="date" sortField={sortField} sortOrder={sortOrder} onSort={onSort} />
+                <SortableHeader label="日期" field="date" sortField={sortField} sortOrder={sortOrder} onSort={onSort} />
               </th>
               <th className="px-4 py-3 text-left">
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Status</span>
+                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">状态</span>
               </th>
               <th className="px-4 py-3 text-right">
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Actions</span>
+                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">操作</span>
               </th>
             </tr>
           </thead>
@@ -97,7 +97,7 @@ export function PostTable({
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     {post.sticky && (
-                      <span title="Sticky">
+                      <span title="置顶文章">
                         <Icon icon="ri:pushpin-fill" className="size-4 shrink-0 text-orange-500" />
                       </span>
                     )}
@@ -132,7 +132,7 @@ export function PostTable({
                       post.draft ? 'bg-orange-500/10 text-orange-500' : 'bg-green-500/10 text-green-500',
                     )}
                   >
-                    {post.draft ? 'Draft' : 'Published'}
+                    {post.draft ? '草稿' : '已发布'}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -142,7 +142,7 @@ export function PostTable({
                         type="button"
                         onClick={() => onEdit(post.id)}
                         className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                        title="Edit post"
+                        title="编辑文章"
                       >
                         <Icon icon="ri:edit-line" className="size-4" />
                       </button>
@@ -152,7 +152,7 @@ export function PostTable({
                         type="button"
                         onClick={() => onOpenInEditor(post.id)}
                         className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                        title="Open in VS Code"
+                        title="在 VS Code 打开"
                       >
                         <Icon icon="ri:vscode-line" className="size-4" />
                       </button>
@@ -165,7 +165,7 @@ export function PostTable({
                           'rounded-md p-1.5 transition-colors hover:bg-accent hover:text-foreground',
                           post.sticky ? 'text-orange-500' : 'text-muted-foreground',
                         )}
-                        title={post.sticky ? 'Unpin post' : 'Pin post'}
+                        title={post.sticky ? '取消置顶' : '置顶文章'}
                       >
                         <Icon icon={post.sticky ? 'ri:pushpin-fill' : 'ri:pushpin-line'} className="size-4" />
                       </button>
@@ -174,7 +174,7 @@ export function PostTable({
                       type="button"
                       onClick={() => onToggleDraft(post.id)}
                       className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      title={post.draft ? 'Publish' : 'Mark as draft'}
+                      title={post.draft ? '发布文章' : '设为草稿'}
                     >
                       <Icon icon={post.draft ? 'ri:check-line' : 'ri:draft-line'} className="size-4" />
                     </button>

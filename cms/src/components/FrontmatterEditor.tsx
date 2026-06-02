@@ -1,5 +1,5 @@
 /**
- * Frontmatter Editor
+ * 文章属性 Editor
  *
  * Sidebar panel for editing post frontmatter fields.
  * Uses react-hook-form with Zod validation.
@@ -290,9 +290,9 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
     try {
       const result = await uploadImage(file);
       setValue('cover', result.url, { shouldDirty: true, shouldValidate: true });
-      toast.success('Cover image uploaded');
+      toast.success('封面图已上传');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to upload image');
+      toast.error(error instanceof Error ? error.message : '图片上传失败');
     } finally {
       setIsUploadingCover(false);
     }
@@ -314,11 +314,11 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
 
   return (
     <div className="space-y-4 p-4">
-      <h3 className="font-semibold text-sm">Frontmatter</h3>
+      <h3 className="font-semibold text-sm">文章属性</h3>
 
       {/* Basic Fields */}
       <div className="space-y-3">
-        <FormField label="Title" id="title" placeholder="Post title" error={errors.title?.message} {...register('title')} />
+        <FormField label="标题" id="title" placeholder="文章标题" error={errors.title?.message} {...register('title')} />
 
         <div className="grid grid-cols-2 gap-2">
           <FormField
@@ -329,7 +329,7 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
             {...register('date')}
           />
           <FormField
-            label="Updated"
+            label="更新时间"
             id="updated"
             placeholder="YYYY-MM-DD HH:mm:ss"
             error={errors.updated?.message}
@@ -338,41 +338,41 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
         </div>
 
         <FormTextarea
-          label="Description"
+          label="摘要"
           id="description"
-          placeholder="Post description..."
+          placeholder="文章摘要，用于列表和 SEO..."
           rows={2}
           error={errors.description?.message}
           {...register('description')}
         />
 
         <FormField
-          label="Categories"
+          label="分类"
           id="categories"
           placeholder="笔记 > 前端 > React"
           error={errors.categories?.message}
           {...register('categories')}
         />
 
-        <FormField label="Tags" id="tags" placeholder="tag1, tag2, tag3" error={errors.tags?.message} {...register('tags')} />
+        <FormField label="标签" id="tags" placeholder="标签1, 标签2, 标签3" error={errors.tags?.message} {...register('tags')} />
 
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
             <label htmlFor="cover" className="font-medium text-muted-foreground text-xs">
-              Cover Image
+              封面图
             </label>
             <label className="inline-flex cursor-pointer items-center rounded border border-input bg-background px-2 py-1 text-xs transition-colors hover:bg-background/70">
               <Icon
                 icon={isUploadingCover ? 'ri:loader-4-line' : 'ri:upload-2-line'}
                 className={cn('mr-1 size-3.5', isUploadingCover && 'animate-spin')}
               />
-              {isUploadingCover ? 'Uploading' : 'Upload'}
+              {isUploadingCover ? '上传中' : '上传'}
               <input type="file" accept="image/*" className="hidden" disabled={isUploadingCover} onChange={handleCoverUpload} />
             </label>
           </div>
           <input
             id="cover"
-            placeholder="/img/cms/cover.webp or https://example.com/image.jpg"
+            placeholder="/img/cms/cover.webp 或 https://example.com/image.jpg"
             className={cn(
               'w-full rounded border border-input bg-background px-2 py-1.5 text-sm',
               'focus:outline-none focus:ring-1 focus:ring-ring',
@@ -384,7 +384,7 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
         </div>
 
         <FormField
-          label="External Link"
+          label="外部链接"
           id="link"
           placeholder="https://example.com"
           error={errors.link?.message}
@@ -392,13 +392,13 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
         />
       </div>
 
-      {/* Advanced Options Toggle */}
+      {/* 高级选项 Toggle */}
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
         className="flex w-full items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm transition-colors hover:bg-muted/50"
       >
-        <span className="font-medium">Advanced Options</span>
+        <span className="font-medium">高级选项</span>
         <Icon icon={showAdvanced ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'} className="size-5 text-muted-foreground" />
       </button>
 
@@ -406,35 +406,35 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
       {showAdvanced && (
         <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
           <FormField
-            label="Subtitle"
+            label="副标题"
             id="subtitle"
-            placeholder="Post subtitle"
+            placeholder="文章副标题"
             error={errors.subtitle?.message}
             {...register('subtitle')}
           />
 
           <div className="space-y-2">
-            <FormCheckbox label="Draft" id="draft" description="Hide from published posts" {...register('draft')} />
+            <FormCheckbox label="草稿" id="draft" description="开启后不会在前台公开显示" {...register('draft')} />
 
-            <FormCheckbox label="Sticky" id="sticky" description="Pin to top of post list" {...register('sticky')} />
+            <FormCheckbox label="置顶" id="sticky" description="在文章列表中置顶显示" {...register('sticky')} />
 
             <FormCheckbox
-              label="TOC Numbering"
+              label="目录编号"
               id="tocNumbering"
-              description="Add numbers to headings"
+              description="给标题目录自动编号"
               {...register('tocNumbering')}
             />
 
             <FormCheckbox
-              label="Exclude from AI Summary"
+              label="不生成 AI 摘要"
               id="excludeFromSummary"
-              description="Skip AI summary generation"
+              description="跳过摘要生成"
               {...register('excludeFromSummary')}
             />
 
-            <FormCheckbox label="Math (KaTeX)" id="math" description="Enable math formula rendering" {...register('math')} />
+            <FormCheckbox label="数学公式（KaTeX）" id="math" description="启用数学公式渲染" {...register('math')} />
 
-            <FormCheckbox label="Quiz Mode" id="quiz" description="Enable quiz interaction" {...register('quiz')} />
+            <FormCheckbox label="测验模式" id="quiz" description="启用测验交互" {...register('quiz')} />
           </div>
         </div>
       )}

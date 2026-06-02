@@ -16,21 +16,21 @@ interface DashboardStatsProps {
 export function DashboardStats({ total, published, draft }: DashboardStatsProps) {
   const stats = [
     {
-      label: 'Total Posts',
+      label: '文章总数',
       value: total,
       icon: 'ri:file-list-3-line',
       iconColor: 'text-blue-500',
       bgColor: 'bg-blue-500/20',
     },
     {
-      label: 'Published',
+      label: '已发布',
       value: published,
       icon: 'ri:check-line',
       iconColor: 'text-green-500',
       bgColor: 'bg-green-500/20',
     },
     {
-      label: 'Drafts',
+      label: '草稿',
       value: draft,
       icon: 'ri:draft-line',
       iconColor: 'text-orange-500',

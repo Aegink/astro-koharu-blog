@@ -18,7 +18,7 @@ import type { CreatePostResponse } from '@/types';
 
 /** Zod schema for create post request validation */
 const createPostRequestSchema = z.object({
-  title: z.string().min(1, 'Title is required').trim(),
+  title: z.string().min(1, '标题不能为空').trim(),
   categories: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
   draft: z.boolean().optional().default(true),
@@ -137,7 +137,7 @@ export async function createHandler(c: Context) {
 
     // Validate path safety
     if (!isPathSafe(postId)) {
-      return c.json({ error: 'Invalid file path' }, 400);
+      return c.json({ error: '文章路径不合法' }, 400);
     }
 
     const filePath = path.join(projectRoot, CONTENT_DIR, postId);
@@ -145,7 +145,7 @@ export async function createHandler(c: Context) {
     // Check if file already exists
     try {
       await fs.access(filePath);
-      return c.json({ error: `File already exists: ${postId}` }, 409);
+      return c.json({ error: `文章已存在： ${postId}` }, 409);
     } catch {
       // File doesn't exist, good to proceed
     }
@@ -171,6 +171,6 @@ export async function createHandler(c: Context) {
     return c.json(response, 201);
   } catch (error) {
     console.error('[CMS Create API] Error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
+    return c.json({ error: '服务内部错误' }, 500);
   }
 }

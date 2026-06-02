@@ -77,11 +77,11 @@ function EditorErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
     <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
       <Icon icon="ri:error-warning-line" className="size-12 text-destructive" />
       <div>
-        <h3 className="font-semibold text-lg">Editor failed to load</h3>
+        <h3 className="font-semibold text-lg">编辑器加载失败</h3>
         <p className="mt-1 text-muted-foreground text-sm">{error.message}</p>
       </div>
       <Button variant="outline" onClick={resetErrorBoundary}>
-        Try Again
+        重试
       </Button>
     </div>
   );
@@ -126,7 +126,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   const [frontmatter, setFrontmatter] = useState<BlogSchema>({ title: '' });
   const frontmatterRef = useRef<FrontmatterEditorRef>(null);
 
-  // Preview state
+  // 预览 state
   const [previewContent, setPreviewContent] = useState('');
 
   // Category state
@@ -159,7 +159,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
           initialContentLoaded.current = true;
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load post');
+        setError(err instanceof Error ? err.message : '文章读取失败');
       } finally {
         setIsLoading(false);
       }
@@ -224,10 +224,10 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         }
 
         setHasUnsavedChanges(false);
-        toast.success('Post saved successfully');
+        toast.success('文章已保存');
         onSaved?.();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to save post');
+        toast.error(err instanceof Error ? err.message : '文章保存失败');
       } finally {
         setIsSaving(false);
       }
@@ -235,7 +235,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
     [editor, frontmatter, postId, onSaved],
   );
 
-  // Save post with new category detection
+  // 保存 post with new category detection
   const handleSave = useCallback(async () => {
     if (!editor) return;
 
@@ -318,7 +318,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   // Handle close with unsaved changes check
   const handleClose = useCallback(() => {
     if (hasUnsavedChanges) {
-      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to close?');
+      const confirmed = window.confirm('当前文章还有未保存的修改，确定要关闭编辑器吗？');
       if (!confirmed) return;
     }
     onClose();
@@ -375,7 +375,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Icon icon="ri:loader-4-line" className="size-12 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground">Loading post...</p>
+          <p className="text-muted-foreground">正在读取文章...</p>
         </div>
       </div>
     );
@@ -404,19 +404,19 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
             type="button"
             onClick={handleClose}
             className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            title="Close editor"
+            title="返回文章列表"
           >
             <Icon icon="ri:arrow-left-line" className="size-5" />
           </button>
           <div>
-            <h1 className="line-clamp-1 font-medium">{frontmatter.title || 'Untitled'}</h1>
+            <h1 className="line-clamp-1 font-medium">{frontmatter.title || '未命名文章'}</h1>
             <p className="text-muted-foreground text-xs">{postId}</p>
           </div>
-          {hasUnsavedChanges && <span className="rounded bg-orange-500/10 px-2 py-0.5 text-orange-500 text-xs">Unsaved</span>}
+          {hasUnsavedChanges && <span className="rounded bg-orange-500/10 px-2 py-0.5 text-orange-500 text-xs">未保存</span>}
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Preview link */}
+          {/* 预览 link */}
           <a
             href={getPreviewUrl()}
             target="_blank"
@@ -424,7 +424,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
             className="flex items-center gap-1 rounded-lg px-3 py-2 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
           >
             <Icon icon="ri:external-link-line" className="size-4" />
-            Preview
+            预览
           </a>
 
           {/* Toggle sidebar */}
@@ -435,22 +435,22 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
               'rounded-lg p-2 transition-colors',
               showSidebar ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted',
             )}
-            title="Toggle frontmatter panel"
+            title="显示或隐藏右侧面板"
           >
             <Icon icon="ri:sidebar-unfold-line" className="size-5" />
           </button>
 
-          {/* Save button */}
+          {/* 保存 button */}
           <Button onClick={handleSave} disabled={isSaving || !hasUnsavedChanges}>
             {isSaving ? (
               <>
                 <Icon icon="ri:loader-4-line" className="mr-1.5 size-4 animate-spin" />
-                Saving...
+                正在保存...
               </>
             ) : (
               <>
                 <Icon icon="ri:save-line" className="mr-1.5 size-4" />
-                Save
+                保存
               </>
             )}
           </Button>
@@ -473,7 +473,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
           <hr
             tabIndex={0}
             aria-orientation="vertical"
-            aria-label="Resize sidebar"
+            aria-label="调整侧栏宽度"
             aria-valuenow={sidebarWidth}
             className={cn(
               'h-full w-1 shrink-0 cursor-col-resize border-none transition-colors hover:bg-primary/50',

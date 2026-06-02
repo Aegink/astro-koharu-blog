@@ -1,5 +1,5 @@
 /**
- * Recent Updates Component
+ * 最近更新 Component
  *
  * Displays recently updated posts with relative time formatting.
  */
@@ -29,7 +29,7 @@ export function RecentUpdates({ posts, maxDisplay = 5, onEdit }: RecentUpdatesPr
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <h2 className="mb-4 font-semibold">Recent Updates</h2>
+      <h2 className="mb-4 font-semibold">最近更新</h2>
       <div className="space-y-2">
         {displayPosts.map((post) => (
           <button
@@ -45,7 +45,7 @@ export function RecentUpdates({ posts, maxDisplay = 5, onEdit }: RecentUpdatesPr
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <span className="line-clamp-1 text-sm">{post.title}</span>
               {post.draft && (
-                <span className="shrink-0 rounded-md bg-orange-500/10 px-1.5 py-0.5 text-orange-500 text-xs">Draft</span>
+                <span className="shrink-0 rounded-md bg-orange-500/10 px-1.5 py-0.5 text-orange-500 text-xs">草稿</span>
               )}
             </div>
             <span className="ml-2 shrink-0 text-muted-foreground text-xs">{formatRelativeTime(post.date)}</span>
@@ -54,7 +54,7 @@ export function RecentUpdates({ posts, maxDisplay = 5, onEdit }: RecentUpdatesPr
         {posts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Icon icon="ri:file-list-3-line" className="size-8 text-muted-foreground" />
-            <p className="mt-2 text-muted-foreground text-sm">No posts yet</p>
+            <p className="mt-2 text-muted-foreground text-sm">还没有文章</p>
           </div>
         )}
       </div>

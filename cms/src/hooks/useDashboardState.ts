@@ -90,7 +90,7 @@ export function useDashboardState(): UseDashboardStateResult {
       const result = await listPosts(params);
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load posts');
+      setError(err instanceof Error ? err.message : '文章列表读取失败');
     } finally {
       setIsLoading(false);
     }
@@ -123,10 +123,10 @@ export function useDashboardState(): UseDashboardStateResult {
     async (postId: string) => {
       try {
         const result = await toggleDraft(postId);
-        toast.success(result.draft ? 'Post marked as draft' : 'Post published');
+        toast.success(result.draft ? '已设为草稿' : '文章已发布');
         fetchData();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to toggle draft status');
+        toast.error(err instanceof Error ? err.message : '文章发布状态切换失败');
       }
     },
     [fetchData],
@@ -136,10 +136,10 @@ export function useDashboardState(): UseDashboardStateResult {
     async (postId: string) => {
       try {
         const result = await toggleSticky(postId);
-        toast.success(result.sticky ? 'Post pinned' : 'Post unpinned');
+        toast.success(result.sticky ? '文章已置顶' : '已取消置顶');
         fetchData();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to toggle sticky status');
+        toast.error(err instanceof Error ? err.message : '文章置顶状态切换失败');
       }
     },
     [fetchData],
@@ -162,7 +162,7 @@ export function useDashboardState(): UseDashboardStateResult {
   const handleOpenInEditor = useCallback(
     (postId: string) => {
       if (!projectRoot) {
-        toast.error('Project root not configured. Please try again.');
+        toast.error('项目根目录未配置，请刷新后重试');
         return;
       }
       const editor = getDefaultEditor();

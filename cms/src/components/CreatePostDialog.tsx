@@ -1,5 +1,5 @@
 /**
- * Create Post Dialog
+ * 创建文章 Dialog
  *
  * Dialog for creating new blog posts with title, categories, tags, and draft status.
  */
@@ -54,7 +54,7 @@ function CustomCategoryChip({
           type="button"
           onClick={() => setIsEditing(true)}
           className="ml-1 text-muted-foreground text-xs hover:text-foreground"
-          title="Edit slug"
+          title="编辑分类路径"
         >
           ({category.slug})
         </button>
@@ -153,15 +153,15 @@ export function CreatePostDialog({ open, onOpenChange, existingCategories, onSuc
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create post');
+        throw new Error(errorData.error || '文章创建失败');
       }
 
       const result = await response.json();
       handleClose();
       onSuccess(result.postId);
     } catch (error) {
-      console.error('Failed to create post:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create post');
+      console.error('文章创建失败:', error);
+      toast.error(error instanceof Error ? error.message : '文章创建失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -171,21 +171,21 @@ export function CreatePostDialog({ open, onOpenChange, existingCategories, onSuc
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create New Post</DialogTitle>
-          <DialogDescription>Fill in the details below to create a new blog post.</DialogDescription>
+          <DialogTitle>新建文章</DialogTitle>
+          <DialogDescription>填写标题、分类和标签，创建后会进入正文编辑器。</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Title */}
+          {/* 标题 */}
           <div className="space-y-2">
             <label htmlFor="title" className="font-medium text-sm">
-              Title <span className="text-destructive">*</span>
+              标题 <span className="text-destructive">*</span>
             </label>
             <input
               id="title"
               type="text"
               {...register('title')}
-              placeholder="Enter post title..."
+              placeholder="请输入文章标题..."
               className={cn(
                 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm',
                 'focus:outline-none focus:ring-2 focus:ring-ring',
@@ -195,9 +195,9 @@ export function CreatePostDialog({ open, onOpenChange, existingCategories, onSuc
             {errors.title && <p className="text-destructive text-xs">{errors.title.message}</p>}
           </div>
 
-          {/* Categories */}
+          {/* 分类 */}
           <div className="space-y-2">
-            <span className="font-medium text-sm">Categories</span>
+            <span className="font-medium text-sm">分类</span>
 
             {/* Selected categories display */}
             {selectedCategories.length > 0 && (
@@ -259,7 +259,7 @@ export function CreatePostDialog({ open, onOpenChange, existingCategories, onSuc
                     handleAddCustomCategory();
                   }
                 }}
-                placeholder="Add custom category..."
+                placeholder="添加自定义分类..."
                 className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <Button type="button" variant="outline" size="sm" onClick={handleAddCustomCategory}>
@@ -268,43 +268,43 @@ export function CreatePostDialog({ open, onOpenChange, existingCategories, onSuc
             </div>
           </div>
 
-          {/* Tags */}
+          {/* 标签 */}
           <div className="space-y-2">
             <label htmlFor="tags" className="font-medium text-sm">
-              Tags
+              标签
             </label>
             <input
               id="tags"
               type="text"
               {...register('tags')}
-              placeholder="tag1, tag2, tag3..."
+              placeholder="标签1, 标签2, 标签3..."
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <p className="text-muted-foreground text-xs">Separate tags with commas</p>
+            <p className="text-muted-foreground text-xs">多个标签用英文逗号分隔</p>
           </div>
 
           {/* Draft checkbox */}
           <div className="flex items-center gap-2">
             <input id="draft" type="checkbox" {...register('draft')} className="size-4 rounded border-input" />
             <label htmlFor="draft" className="text-sm">
-              Save as draft
+              保存为草稿
             </label>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
-              Cancel
+              取消
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Icon icon="ri:loader-4-line" className="mr-1.5 size-4 animate-spin" />
-                  Creating...
+                  正在创建...
                 </>
               ) : (
                 <>
                   <Icon icon="ri:add-line" className="mr-1.5 size-4" />
-                  Create Post
+                  创建文章
                 </>
               )}
             </Button>

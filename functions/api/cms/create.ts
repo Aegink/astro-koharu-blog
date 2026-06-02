@@ -24,7 +24,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (authError) return authError;
 
     const body = (await context.request.json()) as CreateBody;
-    if (!body.title?.trim()) return json({ error: 'Title is required' }, 400);
+    if (!body.title?.trim()) return json({ error: '标题不能为空' }, 400);
 
     const categoryMap = { ...(await getCategoryMap(context.env)), ...(body.categoryMappings || {}) };
     const segments = (body.categories || []).map((name) => categoryMap[name] || slugify(name));
@@ -46,6 +46,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     await writeFile(context.env, `${CONTENT_DIR}/${postId}`, dumpMatter(frontmatter, ''), `chore(cms): create ${postId}`);
     return json({ success: true, postId }, 201);
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500);
+    return json({ error: error instanceof Error ? error.message : '服务内部错误' }, 500);
   }
 }

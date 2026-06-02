@@ -57,7 +57,7 @@ function safeParseDateString(dateStr: string): Date {
   }
 
   // Fallback: return current date
-  console.warn(`[CMS API] Failed to parse date string: "${dateStr}", using current date`);
+  console.warn(`[CMS API] 日期解析失败： "${dateStr}"，已使用当前时间`);
   return new Date();
 }
 
@@ -104,7 +104,7 @@ export async function readPost(postId: string): Promise<ReadPostResult> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to read post: ${response.status}`);
+    throw new Error(errorData.error || `文章读取失败： ${response.status}`);
   }
 
   const data = await response.json();
@@ -150,7 +150,7 @@ export async function writePost(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to write post: ${response.status}`);
+    throw new Error(errorData.error || `文章保存失败： ${response.status}`);
   }
 }
 
@@ -177,7 +177,7 @@ export async function listPosts(params?: ListPostsParams): Promise<ListPostsResp
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to list posts: ${response.status}`);
+    throw new Error(errorData.error || `文章列表读取失败： ${response.status}`);
   }
 
   return response.json();
@@ -200,7 +200,7 @@ export async function createPost(params: CreatePostParams): Promise<CreatePostRe
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to create post: ${response.status}`);
+    throw new Error(errorData.error || `文章创建失败： ${response.status}`);
   }
 
   return response.json();
@@ -223,7 +223,7 @@ export async function toggleDraft(postId: string): Promise<ToggleDraftResponse> 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to toggle draft: ${response.status}`);
+    throw new Error(errorData.error || `文章发布状态切换失败： ${response.status}`);
   }
 
   return response.json();
@@ -246,7 +246,7 @@ export async function toggleSticky(postId: string): Promise<ToggleStickyResponse
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to toggle sticky: ${response.status}`);
+    throw new Error(errorData.error || `文章置顶状态切换失败： ${response.status}`);
   }
 
   return response.json();
@@ -278,7 +278,7 @@ export async function getCMSConfig(): Promise<CMSConfigResponse> {
   const response = await cmsFetch('/api/cms/config');
 
   if (!response.ok) {
-    throw new Error('Failed to fetch CMS config');
+    throw new Error('后台配置读取失败');
   }
 
   const config: CMSConfigResponse = await response.json();
@@ -306,7 +306,7 @@ export async function uploadImage(file: File): Promise<UploadImageResponse> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to upload image: ${response.status}`);
+    throw new Error(errorData.error || `图片上传失败： ${response.status}`);
   }
 
   return response.json();
@@ -317,7 +317,7 @@ export async function readSiteConfig(): Promise<string> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to read site config: ${response.status}`);
+    throw new Error(errorData.error || `站点配置读取失败： ${response.status}`);
   }
 
   const data = (await response.json()) as { content: string };
@@ -335,6 +335,6 @@ export async function writeSiteConfig(content: string): Promise<void> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to write site config: ${response.status}`);
+    throw new Error(errorData.error || `站点配置保存失败： ${response.status}`);
   }
 }

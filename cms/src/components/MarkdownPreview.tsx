@@ -1,5 +1,5 @@
 /**
- * Markdown Preview Component
+ * Markdown 预览 Component
  *
  * Renders markdown content with full enhancement support:
  * - Shiki syntax highlighting
@@ -49,14 +49,14 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       onKeyDown={(e) => e.key === 'Escape' && onClose()}
       role="dialog"
       aria-modal="true"
-      aria-label="Image preview"
+      aria-label="图片预览"
     >
-      <button type="button" className="preview-lightbox-close" onClick={onClose} aria-label="Close">
+      <button type="button" className="preview-lightbox-close" onClick={onClose} aria-label="关闭">
         <Icon icon="ri:close-line" className="size-6" />
       </button>
       <img
         src={src}
-        alt="Preview"
+        alt="预览"
         className="preview-lightbox-img"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === 'Enter' && onClose()}
@@ -84,9 +84,9 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
           setHtml(rendered);
         }
       } catch (error) {
-        console.error('Failed to render markdown:', error);
+        console.error('Markdown 渲染失败:', error);
         if (!cancelled) {
-          setHtml(`<p class="text-destructive">Failed to render markdown</p>`);
+          setHtml(`<p class="text-destructive">Markdown 渲染失败</p>`);
         }
       } finally {
         if (!cancelled) {
@@ -120,7 +120,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
     return () => clearTimeout(timeoutId);
   }, [html, isLoading]);
 
-  // Close lightbox handler
+  // 关闭 lightbox handler
   const closeLightbox = useCallback(() => {
     setLightboxSrc(null);
   }, []);
@@ -137,7 +137,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
         <Icon icon="ri:file-text-line" className="size-10 opacity-50" />
-        <p className="text-sm">No content to preview</p>
+        <p className="text-sm">暂无可预览内容</p>
       </div>
     );
   }

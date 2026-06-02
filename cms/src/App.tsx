@@ -5,7 +5,7 @@
  */
 
 import { Icon } from '@iconify/react';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'sonner';
 import {
@@ -19,15 +19,30 @@ import {
   SiteConfigEditor,
 } from '@/components';
 import { Button } from '@/components/ui/button';
-import { type StatusFilter, useDashboardState } from '@/hooks';
+import { type StatusFilter, type Tab, useDashboardState } from '@/hooks';
 import { clearCmsPassword, getCmsPassword, setCmsPassword } from '@/lib/auth';
 import { MAX_CATEGORY_DISPLAY, MAX_RECENT_POSTS_DISPLAY } from '@/lib/paths';
 import { cn } from '@/lib/utils';
 
+type NavItem = { id: Tab; label: string; description: string; icon: string };
+type LoginFeature = { title: string; description: string; icon: string };
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'overview', label: '仪表盘', description: '内容概览与最近更新', icon: 'ri:dashboard-3-line' },
+  { id: 'posts', label: '文章管理', description: '搜索、编辑、发布文章', icon: 'ri:article-line' },
+  { id: 'config', label: '站点设置', description: '站点资料、社交链接、分类映射', icon: 'ri:settings-4-line' },
+];
+
+const LOGIN_FEATURES: LoginFeature[] = [
+  { title: '写文章', description: '新建草稿并进入编辑器', icon: 'ri:quill-pen-line' },
+  { title: '传图片', description: '封面图自动上传到仓库', icon: 'ri:image-add-line' },
+  { title: '改设置', description: '中文表单维护站点配置', icon: 'ri:settings-5-line' },
+];
+
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = password.trim();
     if (!trimmed) return;
@@ -36,41 +51,66 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-xl bg-primary/10 p-3 text-primary">
-            <Icon icon="ri:lock-password-line" className="size-6" />
+    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-10 text-foreground">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(251,191,36,0.18),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(56,189,248,0.16),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.06),transparent_38%)]" />
+      <div className="relative mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-muted-foreground text-sm shadow-lg shadow-black/10 backdrop-blur">
+            <span className="size-2 rounded-full bg-green-400" />
+            Cloudflare Pages 线上后台
           </div>
-          <div>
-            <h1 className="font-semibold text-xl">Koharu CMS</h1>
-            <p className="text-muted-foreground text-sm">Online admin console</p>
+          <div className="space-y-4">
+            <h1 className="max-w-2xl font-semibold text-4xl tracking-tight md:text-6xl">博客管理后台</h1>
+            <p className="max-w-xl text-lg text-muted-foreground leading-8">
+              这里是基于项目自带 CMS 改造的线上版。登录后可以写文章、上传封面图、修改站点资料，保存后会写入 GitHub 并触发重新部署。
+            </p>
           </div>
-        </div>
+          <div className="grid max-w-2xl gap-3 sm:grid-cols-3">
+            {LOGIN_FEATURES.map((feature) => (
+              <div key={feature.title} className="rounded-2xl border border-border bg-card/70 p-4 shadow-lg shadow-black/10 backdrop-blur">
+                <Icon icon={feature.icon} className="mb-3 size-6 text-primary" />
+                <p className="font-medium">{feature.title}</p>
+                <p className="mt-1 text-muted-foreground text-xs leading-5">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        <label htmlFor="cms-password" className="mb-2 block font-medium text-sm">
-          Admin password
-        </label>
-        <input
-          id="cms-password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="Enter CMS_ADMIN_PASSWORD"
-          className="mb-4 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
+        <form onSubmit={handleSubmit} className="w-full rounded-[2rem] border border-border bg-card/85 p-6 shadow-2xl shadow-black/25 backdrop-blur md:p-8">
+          <div className="mb-8 flex items-center gap-4">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/20">
+              <Icon icon="ri:lock-password-line" className="size-7" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-2xl">进入后台</h2>
+              <p className="mt-1 text-muted-foreground text-sm">请输入 Cloudflare 环境变量中的后台密码。</p>
+            </div>
+          </div>
 
-        <Button type="submit" className="w-full" disabled={!password.trim()}>
-          <Icon icon="ri:login-circle-line" className="mr-1.5 size-4" />
-          Sign in
-        </Button>
-      </form>
+          <label htmlFor="cms-password" className="mb-2 block font-medium text-sm">
+            后台密码
+          </label>
+          <input
+            id="cms-password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="输入后台登录密码"
+            className="mb-4 w-full rounded-2xl border border-input bg-background/80 px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+
+          <Button type="submit" className="h-11 w-full rounded-2xl" disabled={!password.trim()}>
+            <Icon icon="ri:login-circle-line" className="mr-1.5 size-4" />
+            登录后台
+          </Button>
+          <p className="mt-4 text-center text-muted-foreground text-xs">密码只保存在当前浏览器会话中，可随时退出登录。</p>
+        </form>
+      </div>
     </div>
   );
 }
 
-// Main App Content
 function AppContent({ onLogout }: { onLogout: () => void }) {
   const {
     activeTab,
@@ -99,184 +139,269 @@ function AppContent({ onLogout }: { onLogout: () => void }) {
     handleEditorSaved,
   } = useDashboardState();
 
-  // Show editor if editing
+  const activeNav = NAV_ITEMS.find((item) => item.id === activeTab) ?? NAV_ITEMS[0]!;
+
   if (editingPostId) {
     return <PostEditor postId={editingPostId} onClose={handleEditorClose} onSaved={handleEditorSaved} />;
   }
 
   return (
     <>
-      <div className="flex min-h-screen flex-col">
-        {/* Header */}
-        <header className="border-border border-b bg-card">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Icon icon="ri:dashboard-3-line" className="size-6" />
-              <h1 className="font-semibold text-xl">Koharu CMS</h1>
-              <span className="rounded bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">ONLINE</span>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(251,191,36,0.13),transparent_26%),radial-gradient(circle_at_100%_0%,rgba(56,189,248,0.13),transparent_28%)]" />
+        <div className="relative flex min-h-screen">
+          <aside className="hidden w-72 shrink-0 border-border border-r bg-card/70 p-5 backdrop-blur xl:block">
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/20">
+                <Icon icon="ri:quill-pen-line" className="size-6" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-lg">博客管理后台</h1>
+                <p className="text-muted-foreground text-xs">线上写作与站点维护</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
-                <Icon
-                  icon={isLoading ? 'ri:loader-4-line' : 'ri:refresh-line'}
-                  className={cn('mr-1.5 size-4', isLoading && 'animate-spin')}
-                />
-                Refresh
-              </Button>
-              <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
-                <Icon icon="ri:add-line" className="mr-1.5 size-4" />
-                New Post
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onLogout}>
-                <Icon icon="ri:logout-circle-r-line" className="mr-1.5 size-4" />
-                Sign out
-              </Button>
-            </div>
-          </div>
-        </header>
 
-        {/* Tabs */}
-        <div className="border-border border-b bg-card">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="flex gap-4">
-              {(['overview', 'posts', 'config'] as const).map((tab) => (
+            <nav className="space-y-2">
+              {NAV_ITEMS.map((item) => (
                 <button
-                  key={tab}
+                  key={item.id}
                   type="button"
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    'border-b-2 px-1 py-3 font-medium text-sm capitalize transition-colors',
-                    activeTab === tab
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground',
+                    'flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition',
+                    activeTab === item.id
+                      ? 'border-primary/40 bg-primary/15 text-foreground shadow-lg shadow-primary/10'
+                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/30 hover:text-foreground',
                   )}
                 >
-                  {tab}
+                  <Icon icon={item.icon} className="mt-0.5 size-5 shrink-0" />
+                  <span>
+                    <span className="block font-medium text-sm">{item.label}</span>
+                    <span className="mt-1 block text-xs leading-5 opacity-80">{item.description}</span>
+                  </span>
                 </button>
               ))}
+            </nav>
+
+            <div className="mt-8 rounded-2xl border border-border bg-background/50 p-4">
+              <p className="font-medium text-sm">部署状态</p>
+              <p className="mt-2 text-muted-foreground text-xs leading-5">文章和配置保存后会提交到 GitHub，Cloudflare Pages 会自动重新构建。</p>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-green-400 text-xs">
+                <span className="size-1.5 rounded-full bg-green-400" />
+                线上版已启用
+              </div>
             </div>
-          </div>
-        </div>
+          </aside>
 
-        {/* Content */}
-        <main className="flex-1 bg-background">
-          <div className="mx-auto max-w-7xl p-6">
-            {isLoading ? (
-              <div className="flex h-64 items-center justify-center">
-                <Icon icon="ri:loader-4-line" className="size-8 animate-spin text-muted-foreground" />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="sticky top-0 z-20 border-border border-b bg-background/80 backdrop-blur">
+              <div className="flex flex-col gap-4 px-4 py-4 md:px-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm xl:hidden">
+                    <Icon icon="ri:quill-pen-line" className="size-4" />
+                    博客管理后台
+                  </div>
+                  <h2 className="mt-1 font-semibold text-2xl tracking-tight">{activeNav.label}</h2>
+                  <p className="mt-1 text-muted-foreground text-sm">{activeNav.description}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
+                    <Icon icon={isLoading ? 'ri:loader-4-line' : 'ri:refresh-line'} className={cn('mr-1.5 size-4', isLoading && 'animate-spin')} />
+                    刷新数据
+                  </Button>
+                  <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+                    <Icon icon="ri:add-line" className="mr-1.5 size-4" />
+                    写文章
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={onLogout}>
+                    <Icon icon="ri:logout-circle-r-line" className="mr-1.5 size-4" />
+                    退出登录
+                  </Button>
+                </div>
               </div>
-            ) : error ? (
-              <div className="flex h-64 flex-col items-center justify-center gap-4">
-                <Icon icon="ri:error-warning-line" className="size-12 text-destructive" />
-                <p className="text-destructive">{error}</p>
-                <Button variant="outline" onClick={fetchData}>
-                  Retry
-                </Button>
-              </div>
-            ) : data ? (
-              <>
-                {activeTab === 'overview' && (
-                  <div className="space-y-6">
-                    <DashboardStats total={data.stats.total} published={data.stats.published} draft={data.stats.draft} />
 
-                    {/* Two-column layout for Categories and Recent Updates */}
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <CategoryStats categories={data.stats.categoryStats} maxDisplay={MAX_CATEGORY_DISPLAY} />
-                      <RecentUpdates
-                        posts={data.stats.recentPosts}
-                        maxDisplay={MAX_RECENT_POSTS_DISPLAY}
+              <div className="flex gap-2 overflow-x-auto px-4 pb-4 md:px-6 xl:hidden">
+                {NAV_ITEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    className={cn(
+                      'inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 font-medium text-sm transition',
+                      activeTab === item.id ? 'border-primary/40 bg-primary/15 text-primary' : 'border-border bg-card text-muted-foreground',
+                    )}
+                  >
+                    <Icon icon={item.icon} className="size-4" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </header>
+
+            <main className="flex-1 px-4 py-6 md:px-6">
+              {isLoading ? (
+                <div className="flex h-80 items-center justify-center rounded-[2rem] border border-border bg-card/60">
+                  <div className="text-center">
+                    <Icon icon="ri:loader-4-line" className="mx-auto size-9 animate-spin text-primary" />
+                    <p className="mt-3 text-muted-foreground text-sm">正在读取 GitHub 仓库内容...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex h-80 flex-col items-center justify-center gap-4 rounded-[2rem] border border-destructive/30 bg-destructive/10 p-8 text-center">
+                  <Icon icon="ri:error-warning-line" className="size-12 text-destructive" />
+                  <div>
+                    <p className="font-medium text-destructive">后台数据读取失败</p>
+                    <p className="mt-2 max-w-xl text-muted-foreground text-sm">{error}</p>
+                  </div>
+                  <Button variant="outline" onClick={fetchData}>重试</Button>
+                </div>
+              ) : data ? (
+                <>
+                  {activeTab === 'overview' && (
+                    <div className="space-y-6">
+                      <section className="overflow-hidden rounded-[2rem] border border-border bg-card/70 p-6 shadow-xl shadow-black/10 md:p-8">
+                        <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
+                          <div>
+                            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-primary text-xs">
+                              <Icon icon="ri:sparkling-2-line" className="size-4" />
+                              今日写作入口
+                            </div>
+                            <h3 className="font-semibold text-3xl tracking-tight">管理文章、分类与站点资料</h3>
+                            <p className="mt-3 max-w-2xl text-muted-foreground leading-7">
+                              这是项目自带 CMS 的线上改造版。你可以直接在网页里写文章、改封面图和维护站点配置，不需要手动编辑 Markdown 或 YAML。
+                            </p>
+                            <div className="mt-5 flex flex-wrap gap-2">
+                              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                                <Icon icon="ri:add-line" className="mr-1.5 size-4" />
+                                新建文章
+                              </Button>
+                              <Button variant="outline" onClick={() => setActiveTab('posts')}>
+                                <Icon icon="ri:list-check" className="mr-1.5 size-4" />
+                                管理文章
+                              </Button>
+                              <Button variant="outline" onClick={() => setActiveTab('config')}>
+                                <Icon icon="ri:settings-4-line" className="mr-1.5 size-4" />
+                                修改站点设置
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="rounded-3xl border border-border bg-background/55 p-5">
+                            <p className="text-muted-foreground text-sm">内容状态</p>
+                            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                              <div className="rounded-2xl bg-muted/40 p-3">
+                                <p className="font-semibold text-2xl">{data.stats.total}</p>
+                                <p className="mt-1 text-muted-foreground text-xs">文章</p>
+                              </div>
+                              <div className="rounded-2xl bg-green-500/10 p-3 text-green-400">
+                                <p className="font-semibold text-2xl">{data.stats.published}</p>
+                                <p className="mt-1 text-xs">已发布</p>
+                              </div>
+                              <div className="rounded-2xl bg-orange-500/10 p-3 text-orange-300">
+                                <p className="font-semibold text-2xl">{data.stats.draft}</p>
+                                <p className="mt-1 text-xs">草稿</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <DashboardStats total={data.stats.total} published={data.stats.published} draft={data.stats.draft} />
+
+                      <div className="grid gap-6 lg:grid-cols-2">
+                        <CategoryStats categories={data.stats.categoryStats} maxDisplay={MAX_CATEGORY_DISPLAY} />
+                        <RecentUpdates posts={data.stats.recentPosts} maxDisplay={MAX_RECENT_POSTS_DISPLAY} onEdit={handleEditPost} />
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'config' && (
+                    <div className="space-y-5">
+                      <div className="rounded-[2rem] border border-border bg-card/70 p-6 shadow-xl shadow-black/10">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <h3 className="font-semibold text-xl">站点设置</h3>
+                            <p className="mt-2 text-muted-foreground text-sm leading-6">优先使用中文表单修改常用配置。高级 YAML 只用于维护更复杂的原始配置。</p>
+                          </div>
+                          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-primary text-xs">
+                            <Icon icon="ri:git-branch-line" className="size-4" />
+                            保存后写入 GitHub
+                          </div>
+                        </div>
+                      </div>
+                      <SiteConfigEditor />
+                    </div>
+                  )}
+
+                  {activeTab === 'posts' && (
+                    <div className="space-y-5">
+                      <div className="rounded-[2rem] border border-border bg-card/70 p-6 shadow-xl shadow-black/10">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                          <div>
+                            <h3 className="font-semibold text-xl">文章管理</h3>
+                            <p className="mt-2 text-muted-foreground text-sm leading-6">搜索文章，按分类或发布状态筛选。点击编辑图标进入可视化编辑器。</p>
+                          </div>
+                          <p className="text-muted-foreground text-sm">共 {data.stats.total} 篇文章，当前显示 {data.posts.length} 篇</p>
+                        </div>
+
+                        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_220px_180px]">
+                          <div className="relative">
+                            <Icon icon="ri:search-line" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <input
+                              type="text"
+                              placeholder="搜索文章标题、分类或标签..."
+                              value={search}
+                              onChange={(event) => setSearch(event.target.value)}
+                              className="w-full rounded-2xl border border-input bg-background/80 py-3 pr-3 pl-10 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Icon icon="ri:folder-line" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <select
+                              value={category}
+                              onChange={(event) => setCategory(event.target.value)}
+                              className="w-full appearance-none rounded-2xl border border-input bg-background/80 py-3 pr-8 pl-10 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            >
+                              <option value="">全部分类</option>
+                              {data.categories.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                            <Icon icon="ri:arrow-down-s-line" className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                          </div>
+                          <div className="relative">
+                            <Icon icon="ri:filter-line" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <select
+                              value={status}
+                              onChange={(event) => setStatus(event.target.value as StatusFilter)}
+                              className="w-full appearance-none rounded-2xl border border-input bg-background/80 py-3 pr-8 pl-10 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            >
+                              <option value="all">全部状态</option>
+                              <option value="published">已发布</option>
+                              <option value="draft">草稿</option>
+                            </select>
+                            <Icon icon="ri:arrow-down-s-line" className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <PostTable
+                        posts={data.posts}
+                        sortField={sortField}
+                        sortOrder={sortOrder}
+                        onSort={handleSort}
+                        onToggleDraft={handleToggleDraft}
+                        onToggleSticky={handleToggleSticky}
                         onEdit={handleEditPost}
                       />
                     </div>
-                  </div>
-                )}
-
-                {activeTab === 'config' && <SiteConfigEditor />}
-
-                {activeTab === 'posts' && (
-                  <div className="space-y-4">
-                    {/* Filters */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="relative">
-                        <Icon
-                          icon="ri:search-line"
-                          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Search posts..."
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          className="rounded-lg border border-input bg-background py-2 pr-3 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      </div>
-                      <div className="relative">
-                        <Icon
-                          icon="ri:folder-line"
-                          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <select
-                          value={category}
-                          onChange={(e) => setCategory(e.target.value)}
-                          className="appearance-none rounded-lg border border-input bg-background py-2 pr-8 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          <option value="">All Categories</option>
-                          {data.categories.map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
-                        </select>
-                        <Icon
-                          icon="ri:arrow-down-s-line"
-                          className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-muted-foreground"
-                        />
-                      </div>
-                      <div className="relative">
-                        <Icon
-                          icon="ri:filter-line"
-                          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <select
-                          value={status}
-                          onChange={(e) => setStatus(e.target.value as StatusFilter)}
-                          className="appearance-none rounded-lg border border-input bg-background py-2 pr-8 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="published">Published</option>
-                          <option value="draft">Draft</option>
-                        </select>
-                        <Icon
-                          icon="ri:arrow-down-s-line"
-                          className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-muted-foreground"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Results Count */}
-                    <p className="text-muted-foreground text-sm">
-                      Showing {data.posts.length} of {data.stats.total} posts
-                    </p>
-
-                    {/* Table */}
-                    <PostTable
-                      posts={data.posts}
-                      sortField={sortField}
-                      sortOrder={sortOrder}
-                      onSort={handleSort}
-                      onToggleDraft={handleToggleDraft}
-                      onToggleSticky={handleToggleSticky}
-                      onEdit={handleEditPost}
-                    />
-                  </div>
-                )}
-              </>
-            ) : null}
+                  )}
+                </>
+              ) : null}
+            </main>
           </div>
-        </main>
+        </div>
       </div>
 
-      {/* Create Post Dialog */}
       <CreatePostDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}

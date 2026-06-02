@@ -15,7 +15,7 @@ export function CategoryStats({ categories, maxDisplay = 6 }: CategoryStatsProps
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <h2 className="mb-4 font-semibold">Categories</h2>
+      <h2 className="mb-4 font-semibold">分类统计</h2>
       <div className="space-y-3">
         {displayCategories.map((cat) => {
           const percentage = (cat.count / maxCount) * 100;
@@ -34,7 +34,7 @@ export function CategoryStats({ categories, maxDisplay = 6 }: CategoryStatsProps
             </div>
           );
         })}
-        {categories.length === 0 && <p className="text-muted-foreground text-sm">No categories found</p>}
+        {categories.length === 0 && <p className="text-muted-foreground text-sm">还没有分类</p>}
       </div>
     </div>
   );

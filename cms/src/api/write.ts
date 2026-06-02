@@ -15,7 +15,6 @@ import { addCategoryMappings } from '@/lib/config';
 import { serializeFrontmatter } from '@/lib/frontmatter';
 import { CONTENT_DIR } from '@/lib/paths';
 import { hasValidMarkdownExtension, isPathSafe } from '@/lib/validation';
-import type { BlogSchema } from '@/types';
 
 /** Zod schema for write post request validation */
 const writePostRequestSchema = z.object({
@@ -94,7 +93,7 @@ export async function writeHandler(c: Context) {
     }
 
     // Serialize frontmatter for YAML
-    const serializedFrontmatter = serializeFrontmatter(processedFrontmatter as unknown as BlogSchema);
+    const serializedFrontmatter = serializeFrontmatter(processedFrontmatter);
 
     // Generate the file content with gray-matter using custom YAML engine
     // flowLevel: 2 ensures nested arrays use flow style [a, b] instead of block style
