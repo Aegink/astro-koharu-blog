@@ -13,11 +13,18 @@ type CloudflareDeployment = {
 
 async function fetchCloudflareDeployments(env: Env) {
   const config = cloudflareConfig(env);
-  if (!config.accountId || !config.apiToken || !config.projectName) {
+  const missingVariables = [
+    !config.accountId && 'CLOUDFLARE_ACCOUNT_ID',
+    !config.apiToken && 'CLOUDFLARE_API_TOKEN',
+    !config.projectName && 'CLOUDFLARE_PAGES_PROJECT_NAME',
+  ].filter(Boolean) as string[];
+
+  if (missingVariables.length > 0) {
     return {
       configured: false,
       projectName: config.projectName,
-      message: '未配置 Cloudflare API 读取权限，当前仅显示 GitHub 最新提交。',
+      missingVariables,
+      message: `未配置 Cloudflare API 读取权限，缺少：${missingVariables.join('、')}。当前仅显示 GitHub 最新提交。`,
       deployments: [],
     };
   }
@@ -34,13 +41,14 @@ async function fetchCloudflareDeployments(env: Env) {
   const data = (await response.json().catch(() => ({}))) as { success?: boolean; errors?: Array<{ message?: string }>; result?: CloudflareDeployment[] };
   if (!response.ok || data.success === false) {
     const message = data.errors?.map((item) => item.message).filter(Boolean).join('；') || `Cloudflare API ${response.status}`;
-    return { configured: true, projectName: config.projectName, message, deployments: [] };
+    return { configured: true, projectName: config.projectName, missingVariables: [], message, deployments: [] };
   }
 
   return {
     configured: true,
     projectName: config.projectName,
     message: '',
+    missingVariables: [],
     deployments: (data.result || []).map((deployment) => ({
       id: deployment.id,
       url: deployment.url,

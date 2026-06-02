@@ -29,6 +29,7 @@ export type Frontmatter = Record<string, unknown>;
 
 const CONTENT_DIR = 'src/content/blog';
 const CONFIG_PATH = 'config/site.yaml';
+const MEDIA_ROOT_DIR = 'public/img';
 const MEDIA_DIR = 'public/img/cms';
 
 export function json(data: unknown, status = 200): Response {
@@ -283,4 +284,4 @@ export async function listRecentCommits(env: Env, limit = 5) {
   >(env, `/repos/${owner}/${name}/commits?sha=${encodeURIComponent(branch)}&per_page=${limit}`);
 }
 
-export { CONFIG_PATH, CONTENT_DIR, MEDIA_DIR };
+export { CONFIG_PATH, CONTENT_DIR, MEDIA_DIR, MEDIA_ROOT_DIR };

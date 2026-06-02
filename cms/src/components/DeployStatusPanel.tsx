@@ -166,11 +166,23 @@ export function DeployStatusPanel() {
 
               {!data.cloudflare.configured && (
                 <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-100 text-sm leading-6">
-                  {data.cloudflare.message} 如果你想在这里看到 Cloudflare 部署列表，可在 Pages 环境变量里补充 <span className="font-mono">CLOUDFLARE_ACCOUNT_ID</span> 和 <span className="font-mono">CLOUDFLARE_API_TOKEN</span>。
+                  <p className="font-medium">Cloudflare 部署列表还没有启用。</p>
+                  <p className="mt-1">{data.cloudflare.message}</p>
+                  {data.cloudflare.missingVariables && data.cloudflare.missingVariables.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {data.cloudflare.missingVariables.map((name) => (
+                        <span key={name} className="rounded-full bg-black/20 px-2 py-1 font-mono text-xs text-amber-50">{name}</span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mt-3 text-amber-50/90">配置完成并重新部署后，这里会显示最近 5 次 Cloudflare Pages 部署记录。</p>
                 </div>
               )}
               {data.cloudflare.configured && data.cloudflare.message && (
-                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-destructive text-sm">{data.cloudflare.message}</div>
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-destructive text-sm leading-6">
+                  <p className="font-medium">Cloudflare 部署列表读取失败</p>
+                  <p className="mt-1">{data.cloudflare.message}</p>
+                </div>
               )}
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -181,7 +193,7 @@ export function DeployStatusPanel() {
                 <div className="space-y-3">
                   <h3 className="font-semibold">最近 Cloudflare 部署</h3>
                   {data.cloudflare.deployments.length === 0 ? (
-                    <div className="rounded-2xl border border-border border-dashed p-6 text-muted-foreground text-sm">暂无 Cloudflare 部署记录，或未配置读取权限。</div>
+                    <div className="rounded-2xl border border-border border-dashed p-6 text-muted-foreground text-sm">暂无 Cloudflare 部署记录。若刚保存内容，请等待 Pages 构建开始后再刷新。</div>
                   ) : (
                     data.cloudflare.deployments.map((deployment) => <DeploymentCard key={deployment.id} deployment={deployment} />)
                   )}

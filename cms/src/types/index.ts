@@ -153,11 +153,15 @@ export interface MediaImage {
   size: number;
   sha: string;
   extension: string;
+  deletable: boolean;
+  managed: boolean;
+  group: string;
 }
 
 export interface MediaLibraryResponse {
   images: MediaImage[];
   directory: string;
+  uploadDirectory?: string;
 }
 
 export interface TaxonomyRenameResponse {
@@ -201,6 +205,7 @@ export interface DeployStatusResponse {
     configured: boolean;
     projectName: string;
     message: string;
+    missingVariables?: string[];
     deployments: CloudflareDeploymentInfo[];
   };
 }

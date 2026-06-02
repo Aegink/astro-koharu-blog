@@ -7,6 +7,7 @@ import {
   json,
   listRepoTree,
   MEDIA_DIR,
+  MEDIA_ROOT_DIR,
   repo,
 } from '../../_lib/online-cms';
 
@@ -33,19 +34,25 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
     const { owner, name, branch } = repo(context.env);
     const tree = await listRepoTree(context.env);
     const images = tree
-      .filter((item) => item.type === 'blob' && item.path.startsWith(`${MEDIA_DIR}/`) && IMAGE_RE.test(item.path))
-      .map((item) => ({
-        name: item.path.split('/').pop() || item.path,
-        path: item.path,
-        url: toPublicUrl(item.path),
-        rawUrl: `https://raw.githubusercontent.com/${owner}/${name}/${branch}/${encodePath(item.path)}`,
-        size: item.size || 0,
-        sha: item.sha,
-        extension: item.path.split('.').pop()?.toLowerCase() || '',
-      }))
-      .sort((a, b) => b.name.localeCompare(a.name));
+      .filter((item) => item.type === 'blob' && item.path.startsWith(`${MEDIA_ROOT_DIR}/`) && IMAGE_RE.test(item.path))
+      .map((item) => {
+        const deletable = isSafeMediaPath(item.path);
+        return {
+          name: item.path.split('/').pop() || item.path,
+          path: item.path,
+          url: toPublicUrl(item.path),
+          rawUrl: `https://raw.githubusercontent.com/${owner}/${name}/${branch}/${encodePath(item.path)}`,
+          size: item.size || 0,
+          sha: item.sha,
+          extension: item.path.split('.').pop()?.toLowerCase() || '',
+          deletable,
+          managed: deletable,
+          group: deletable ? '后台上传' : '系统图片',
+        };
+      })
+      .sort((a, b) => Number(b.deletable) - Number(a.deletable) || a.path.localeCompare(b.path, 'zh-Hans-CN'));
 
-    return json({ images, directory: MEDIA_DIR });
+    return json({ images, directory: MEDIA_ROOT_DIR, uploadDirectory: MEDIA_DIR });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : '媒体库读取失败' }, 500);
   }
