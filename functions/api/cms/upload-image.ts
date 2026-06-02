@@ -31,9 +31,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     const formData = await context.request.formData();
     const file = formData.get('file');
-    if (!(file instanceof File)) return json({ error: 'Image file is required' }, 400);
-    if (!ALLOWED_TYPES[file.type]) return json({ error: 'Only jpeg, png, webp, gif and avif images are supported' }, 400);
-    if (file.size > MAX_IMAGE_SIZE) return json({ error: 'Image must be 5MB or smaller' }, 400);
+    if (!(file instanceof File)) return json({ error: '请选择要上传的图片。' }, 400);
+    if (!ALLOWED_TYPES[file.type]) return json({ error: '仅支持 jpeg、png、webp、gif、avif 图片。' }, 400);
+    if (file.size > MAX_IMAGE_SIZE) return json({ error: '图片大小不能超过 5MB。' }, 400);
 
     const ext = ALLOWED_TYPES[file.type];
     const filename = `${Date.now()}-${sanitizeName(file.name)}.${ext}`;
@@ -44,6 +44,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     await writeBase64File(context.env, repoPath, base64, `chore(cms): upload image ${filename}`);
     return json({ success: true, path: repoPath, url: publicUrl }, 201);
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500);
+    return json({ error: error instanceof Error ? error.message : '图片上传失败' }, 500);
   }
 }

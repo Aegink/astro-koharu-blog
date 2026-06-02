@@ -12,11 +12,14 @@ import {
   CategoryStats,
   CreatePostDialog,
   DashboardStats,
+  DeployStatusPanel,
   ErrorFallback,
+  MediaLibrary,
   PostEditor,
   PostTable,
   RecentUpdates,
   SiteConfigEditor,
+  TaxonomyManager,
 } from '@/components';
 import { Button } from '@/components/ui/button';
 import { type StatusFilter, type Tab, useDashboardState } from '@/hooks';
@@ -28,14 +31,17 @@ type NavItem = { id: Tab; label: string; description: string; icon: string };
 type LoginFeature = { title: string; description: string; icon: string };
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'overview', label: '仪表盘', description: '内容概览与最近更新', icon: 'ri:dashboard-3-line' },
+  { id: 'overview', label: '仪表盘', description: '内容概览与快捷入口', icon: 'ri:dashboard-3-line' },
   { id: 'posts', label: '文章管理', description: '搜索、编辑、发布文章', icon: 'ri:article-line' },
-  { id: 'config', label: '站点设置', description: '站点资料、社交链接、分类映射', icon: 'ri:settings-4-line' },
+  { id: 'media', label: '媒体库', description: '上传、复制、删除文章图片', icon: 'ri:image-2-line' },
+  { id: 'taxonomy', label: '分类标签', description: '分类映射、标签统计与批量重命名', icon: 'ri:price-tag-3-line' },
+  { id: 'config', label: '站点设置', description: '站点资料、友链、导航和功能开关', icon: 'ri:settings-4-line' },
+  { id: 'deploy', label: '发布状态', description: '查看 GitHub 提交与 Cloudflare 部署', icon: 'ri:rocket-2-line' },
 ];
 
 const LOGIN_FEATURES: LoginFeature[] = [
   { title: '写文章', description: '新建草稿并进入编辑器', icon: 'ri:quill-pen-line' },
-  { title: '传图片', description: '封面图自动上传到仓库', icon: 'ri:image-add-line' },
+  { title: '管图片', description: '媒体库统一上传和复制链接', icon: 'ri:image-add-line' },
   { title: '改设置', description: '中文表单维护站点配置', icon: 'ri:settings-5-line' },
 ];
 
@@ -62,7 +68,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <div className="space-y-4">
             <h1 className="max-w-2xl font-semibold text-4xl tracking-tight md:text-6xl">博客管理后台</h1>
             <p className="max-w-xl text-lg text-muted-foreground leading-8">
-              这里是基于项目自带 CMS 改造的线上版。登录后可以写文章、上传封面图、修改站点资料，保存后会写入 GitHub 并触发重新部署。
+              这里是基于项目自带 CMS 改造的线上版。登录后可以写文章、管理图片、整理分类标签、修改站点资料，保存后会写入 GitHub 并触发重新部署。
             </p>
           </div>
           <div className="grid max-w-2xl gap-3 sm:grid-cols-3">
@@ -97,14 +103,14 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="输入后台登录密码"
-            className="mb-4 w-full rounded-2xl border border-input bg-background/80 px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="mb-4 w-full rounded-2xl border border-input bg-background/80 px-4 py-3 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
-
-          <Button type="submit" className="h-11 w-full rounded-2xl" disabled={!password.trim()}>
-            <Icon icon="ri:login-circle-line" className="mr-1.5 size-4" />
+          <Button type="submit" className="w-full rounded-2xl py-6 text-base">
             登录后台
           </Button>
-          <p className="mt-4 text-center text-muted-foreground text-xs">密码只保存在当前浏览器会话中，可随时退出登录。</p>
+          <p className="mt-4 text-muted-foreground text-xs leading-5">
+            密码只保存在当前浏览器，用于调用 Cloudflare Pages Functions，不会写入页面源码。
+          </p>
         </form>
       </div>
     </div>
@@ -185,11 +191,15 @@ function AppContent({ onLogout }: { onLogout: () => void }) {
 
             <div className="mt-8 rounded-2xl border border-border bg-background/50 p-4">
               <p className="font-medium text-sm">部署状态</p>
-              <p className="mt-2 text-muted-foreground text-xs leading-5">文章和配置保存后会提交到 GitHub，Cloudflare Pages 会自动重新构建。</p>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-green-400 text-xs">
+              <p className="mt-2 text-muted-foreground text-xs leading-5">文章、图片和配置保存后会提交到 GitHub，Cloudflare Pages 会自动重新构建。</p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('deploy')}
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-green-400 text-xs transition hover:bg-green-500/15"
+              >
                 <span className="size-1.5 rounded-full bg-green-400" />
-                线上版已启用
-              </div>
+                查看发布进度
+              </button>
             </div>
           </aside>
 
@@ -266,9 +276,9 @@ function AppContent({ onLogout }: { onLogout: () => void }) {
                               <Icon icon="ri:sparkling-2-line" className="size-4" />
                               今日写作入口
                             </div>
-                            <h3 className="font-semibold text-3xl tracking-tight">管理文章、分类与站点资料</h3>
+                            <h3 className="font-semibold text-3xl tracking-tight">管理文章、图片、分类与站点资料</h3>
                             <p className="mt-3 max-w-2xl text-muted-foreground leading-7">
-                              这是项目自带 CMS 的线上改造版。你可以直接在网页里写文章、改封面图和维护站点配置，不需要手动编辑 Markdown 或 YAML。
+                              这是项目自带 CMS 的线上改造版。你可以直接在网页里写文章、上传图片、整理分类标签、维护站点配置，并查看部署进度。
                             </p>
                             <div className="mt-5 flex flex-wrap gap-2">
                               <Button onClick={() => setIsCreateDialogOpen(true)}>
@@ -279,9 +289,21 @@ function AppContent({ onLogout }: { onLogout: () => void }) {
                                 <Icon icon="ri:list-check" className="mr-1.5 size-4" />
                                 管理文章
                               </Button>
+                              <Button variant="outline" onClick={() => setActiveTab('media')}>
+                                <Icon icon="ri:image-2-line" className="mr-1.5 size-4" />
+                                管理图片
+                              </Button>
+                              <Button variant="outline" onClick={() => setActiveTab('taxonomy')}>
+                                <Icon icon="ri:price-tag-3-line" className="mr-1.5 size-4" />
+                                分类标签
+                              </Button>
                               <Button variant="outline" onClick={() => setActiveTab('config')}>
                                 <Icon icon="ri:settings-4-line" className="mr-1.5 size-4" />
                                 修改站点设置
+                              </Button>
+                              <Button variant="outline" onClick={() => setActiveTab('deploy')}>
+                                <Icon icon="ri:rocket-2-line" className="mr-1.5 size-4" />
+                                查看发布状态
                               </Button>
                             </div>
                           </div>
@@ -313,6 +335,12 @@ function AppContent({ onLogout }: { onLogout: () => void }) {
                       </div>
                     </div>
                   )}
+
+                  {activeTab === 'media' && <MediaLibrary />}
+
+                  {activeTab === 'taxonomy' && <TaxonomyManager data={data} onChanged={fetchData} />}
+
+                  {activeTab === 'deploy' && <DeployStatusPanel />}
 
                   {activeTab === 'config' && (
                     <div className="space-y-5">

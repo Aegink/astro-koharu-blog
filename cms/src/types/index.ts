@@ -144,3 +144,63 @@ export interface ToggleStickyResponse {
   success: boolean;
   sticky: boolean;
 }
+
+export interface MediaImage {
+  name: string;
+  path: string;
+  url: string;
+  rawUrl: string;
+  size: number;
+  sha: string;
+  extension: string;
+}
+
+export interface MediaLibraryResponse {
+  images: MediaImage[];
+  directory: string;
+}
+
+export interface TaxonomyRenameResponse {
+  success: boolean;
+  changed: number;
+  files: string[];
+}
+
+export interface CommitInfo {
+  sha: string;
+  shortSha: string;
+  message: string;
+  url: string;
+  author: string;
+  date: string;
+}
+
+export interface CloudflareDeploymentInfo {
+  id: string;
+  url?: string;
+  aliases: string[];
+  environment: string;
+  status: string;
+  stage: string;
+  createdOn: string;
+  modifiedOn: string;
+  commitHash: string;
+  commitMessage: string;
+  branch: string;
+}
+
+export interface DeployStatusResponse {
+  repo: {
+    owner: string;
+    name: string;
+    branch: string;
+  };
+  latestCommit: CommitInfo | null;
+  commits: CommitInfo[];
+  cloudflare: {
+    configured: boolean;
+    projectName: string;
+    message: string;
+    deployments: CloudflareDeploymentInfo[];
+  };
+}

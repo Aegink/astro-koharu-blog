@@ -8,13 +8,28 @@ export type Env = {
   CMS_ADMIN_PASSWORD?: string;
   GITHUB_COMMITTER_NAME?: string;
   GITHUB_COMMITTER_EMAIL?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+  CLOUDFLARE_PAGES_PROJECT_NAME?: string;
+  CF_ACCOUNT_ID?: string;
+  CF_API_TOKEN?: string;
+  CF_PAGES_PROJECT_NAME?: string;
 };
 
-type GitHubFile = { content: string; sha: string };
-type Frontmatter = Record<string, unknown>;
+export type GitHubFile = { content: string; sha: string };
+export type GitHubTreeItem = {
+  path: string;
+  mode?: string;
+  type: 'blob' | 'tree' | string;
+  sha: string;
+  size?: number;
+  url?: string;
+};
+export type Frontmatter = Record<string, unknown>;
 
 const CONTENT_DIR = 'src/content/blog';
 const CONFIG_PATH = 'config/site.yaml';
+const MEDIA_DIR = 'public/img/cms';
 
 export function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -24,10 +39,10 @@ export function json(data: unknown, status = 200): Response {
 }
 
 export function checkAuth(request: Request, env: Env): Response | null {
-  if (!env.GITHUB_TOKEN) return json({ error: 'Missing GITHUB_TOKEN' }, 500);
-  if (!env.CMS_ADMIN_PASSWORD) return json({ error: 'Missing CMS_ADMIN_PASSWORD' }, 500);
+  if (!env.GITHUB_TOKEN) return json({ error: '缺少 GITHUB_TOKEN，请先在 Cloudflare Pages 环境变量中配置。' }, 500);
+  if (!env.CMS_ADMIN_PASSWORD) return json({ error: '缺少 CMS_ADMIN_PASSWORD，请先配置后台登录密码。' }, 500);
   const provided = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
-  if (!provided || provided !== env.CMS_ADMIN_PASSWORD) return json({ error: 'Unauthorized' }, 401);
+  if (!provided || provided !== env.CMS_ADMIN_PASSWORD) return json({ error: '后台密码不正确，请重新登录。' }, 401);
   return null;
 }
 
@@ -36,6 +51,14 @@ export function repo(env: Env) {
     owner: env.GITHUB_OWNER || 'Aegink',
     name: env.GITHUB_REPO || 'astro-koharu-blog',
     branch: env.GITHUB_BRANCH || 'main',
+  };
+}
+
+export function cloudflareConfig(env: Env) {
+  return {
+    accountId: env.CLOUDFLARE_ACCOUNT_ID || env.CF_ACCOUNT_ID || '',
+    apiToken: env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN || '',
+    projectName: env.CLOUDFLARE_PAGES_PROJECT_NAME || env.CF_PAGES_PROJECT_NAME || 'astro-koharu-boke',
   };
 }
 
@@ -59,7 +82,7 @@ function encodeBase64(content: string): string {
   return btoa(binary);
 }
 
-async function gh<T>(env: Env, apiPath: string, init: RequestInit = {}): Promise<T> {
+export async function githubRequest<T>(env: Env, apiPath: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`https://api.github.com${apiPath}`, {
     ...init,
     headers: {
@@ -80,7 +103,7 @@ async function gh<T>(env: Env, apiPath: string, init: RequestInit = {}): Promise
 
 export async function readFile(env: Env, filePath: string): Promise<GitHubFile> {
   const { owner, name, branch } = repo(env);
-  const data = await gh<{ content: string; sha: string }>(
+  const data = await githubRequest<{ content: string; sha: string }>(
     env,
     `/repos/${owner}/${name}/contents/${encodePath(filePath)}?ref=${encodeURIComponent(branch)}`,
   );
@@ -94,12 +117,11 @@ export async function writeFile(env: Env, filePath: string, content: string, mes
   if (env.GITHUB_COMMITTER_NAME && env.GITHUB_COMMITTER_EMAIL) {
     body.committer = { name: env.GITHUB_COMMITTER_NAME, email: env.GITHUB_COMMITTER_EMAIL };
   }
-  return gh(env, `/repos/${owner}/${name}/contents/${encodePath(filePath)}`, {
+  return githubRequest(env, `/repos/${owner}/${name}/contents/${encodePath(filePath)}`, {
     method: 'PUT',
     body: JSON.stringify(body),
   });
 }
-
 
 export async function writeBase64File(env: Env, filePath: string, base64Content: string, message: string, sha?: string) {
   const { owner, name, branch } = repo(env);
@@ -108,13 +130,30 @@ export async function writeBase64File(env: Env, filePath: string, base64Content:
   if (env.GITHUB_COMMITTER_NAME && env.GITHUB_COMMITTER_EMAIL) {
     body.committer = { name: env.GITHUB_COMMITTER_NAME, email: env.GITHUB_COMMITTER_EMAIL };
   }
-  return gh(env, `/repos/${owner}/${name}/contents/${encodePath(filePath)}`, {
+  return githubRequest(env, `/repos/${owner}/${name}/contents/${encodePath(filePath)}`, {
     method: 'PUT',
     body: JSON.stringify(body),
   });
 }
+
+export async function deleteFile(env: Env, filePath: string, message: string, sha: string) {
+  const { owner, name, branch } = repo(env);
+  const body: Record<string, unknown> = { message, sha, branch };
+  if (env.GITHUB_COMMITTER_NAME && env.GITHUB_COMMITTER_EMAIL) {
+    body.committer = { name: env.GITHUB_COMMITTER_NAME, email: env.GITHUB_COMMITTER_EMAIL };
+  }
+  return githubRequest(env, `/repos/${owner}/${name}/contents/${encodePath(filePath)}`, {
+    method: 'DELETE',
+    body: JSON.stringify(body),
+  });
+}
+
 export function isSafeMarkdownPath(postId: string): boolean {
-  return !postId.startsWith('/') && !postId.includes('..') && !postId.includes('\\') && /\.mdx?$/.test(postId);
+  return !postId.startsWith('/') && !postId.includes('..') && /\.mdx?$/.test(postId);
+}
+
+export function isSafeMediaPath(filePath: string): boolean {
+  return filePath.startsWith(`${MEDIA_DIR}/`) && !filePath.includes('..') && /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(filePath);
 }
 
 function dateToString(date: Date): string {
@@ -176,6 +215,14 @@ export async function getCategoryMap(env: Env): Promise<Record<string, string>> 
   return parsed.categoryMap || {};
 }
 
+export async function replaceCategoryMap(env: Env, categoryMap: Record<string, string>) {
+  const config = await readFile(env, CONFIG_PATH);
+  const parsed = (yaml.load(config.content) || {}) as Record<string, unknown>;
+  parsed.categoryMap = categoryMap;
+  const next = yaml.dump(parsed, { flowLevel: 2, lineWidth: -1, quotingType: "'", forceQuotes: false, sortKeys: false });
+  await writeFile(env, CONFIG_PATH, next, 'chore(cms): update category map', config.sha);
+}
+
 function addCategoryMappings(configContent: string, mappings?: Record<string, string>): string | null {
   if (!mappings || Object.keys(mappings).length === 0) return null;
   const lines = configContent.split('\n');
@@ -209,15 +256,31 @@ export async function updateCategoryMappings(env: Env, mappings?: Record<string,
   if (next && next !== config.content) await writeFile(env, CONFIG_PATH, next, 'chore(cms): update category mappings', config.sha);
 }
 
-export async function listMarkdownFiles(env: Env): Promise<string[]> {
+export async function listRepoTree(env: Env): Promise<GitHubTreeItem[]> {
   const { owner, name, branch } = repo(env);
-  const tree = await gh<{ tree: Array<{ path: string; type: string }> }>(
+  const tree = await githubRequest<{ tree: GitHubTreeItem[] }>(
     env,
     `/repos/${owner}/${name}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
   );
-  return tree.tree
+  return tree.tree;
+}
+
+export async function listMarkdownFiles(env: Env): Promise<string[]> {
+  const tree = await listRepoTree(env);
+  return tree
     .filter((item) => item.type === 'blob' && item.path.startsWith(`${CONTENT_DIR}/`) && /\.mdx?$/.test(item.path))
     .map((item) => item.path.slice(CONTENT_DIR.length + 1));
 }
 
-export { CONFIG_PATH, CONTENT_DIR };
+export async function listRecentCommits(env: Env, limit = 5) {
+  const { owner, name, branch } = repo(env);
+  return githubRequest<
+    Array<{
+      sha: string;
+      html_url: string;
+      commit: { message: string; author?: { name?: string; date?: string }; committer?: { name?: string; date?: string } };
+    }>
+  >(env, `/repos/${owner}/${name}/commits?sha=${encodeURIComponent(branch)}&per_page=${limit}`);
+}
+
+export { CONFIG_PATH, CONTENT_DIR, MEDIA_DIR };

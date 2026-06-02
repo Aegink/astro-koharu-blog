@@ -106,12 +106,51 @@ type SidebarTab = 'frontmatter' | 'toc' | 'preview';
 
 const SIDEBAR_WIDTH_KEY = 'cms-sidebar-width';
 const SIDEBAR_DEFAULT_WIDTH = 320;
+const AUTOSAVE_PREFIX = 'cms-post-autosave:';
+const AUTOSAVE_DELAY_MS = 1200;
+
+type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'restored';
+type AutoSaveDraft = {
+  postId: string;
+  updatedAt: string;
+  frontmatter: BlogSchema;
+  content: string;
+};
+
+function getAutoSaveKey(postId: string): string {
+  return `${AUTOSAVE_PREFIX}${postId}`;
+}
+
+function readAutoSaveDraft(postId: string): AutoSaveDraft | null {
+  try {
+    const raw = localStorage.getItem(getAutoSaveKey(postId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AutoSaveDraft;
+    return parsed.postId === postId && typeof parsed.content === 'string' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearAutoSaveDraft(postId: string) {
+  localStorage.removeItem(getAutoSaveKey(postId));
+}
+
+function formatAutoSaveTime(value: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
 
 export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [editorRevision, setEditorRevision] = useState(0);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>('idle');
+  const [autoSaveTime, setAutoSaveTime] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('frontmatter');
 
@@ -150,14 +189,25 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
 
       try {
         const data = await readPost(postId);
-        setFrontmatter(data.frontmatter);
+        const draft = readAutoSaveDraft(postId);
+        const shouldRestore = draft
+          ? window.confirm(`发现这篇文章有本地自动保存草稿（${formatAutoSaveTime(draft.updatedAt) || '未知时间'}），要恢复吗？`)
+          : false;
+        const nextFrontmatter = shouldRestore && draft ? draft.frontmatter : data.frontmatter;
+        const nextContent = shouldRestore && draft ? draft.content : data.content;
+
+        setFrontmatter(nextFrontmatter);
         initialFrontmatterLoaded.current = true;
 
         // Load content into editor
-        if (data.content && editor) {
-          await markdownToBlocks(editor, data.content);
+        if (editor) {
+          await markdownToBlocks(editor, nextContent || '');
           initialContentLoaded.current = true;
         }
+
+        setHasUnsavedChanges(Boolean(shouldRestore));
+        setAutoSaveStatus(shouldRestore ? 'restored' : 'idle');
+        setAutoSaveTime(shouldRestore && draft ? draft.updatedAt : null);
       } catch (err) {
         setError(err instanceof Error ? err.message : '文章读取失败');
       } finally {
@@ -176,11 +226,32 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
       // Only mark as changed after initial content is loaded
       if (initialContentLoaded.current) {
         setHasUnsavedChanges(true);
+        setEditorRevision((revision) => revision + 1);
       }
     });
 
     return unsubscribe;
   }, [editor]);
+
+  useEffect(() => {
+    if (!editor || !hasUnsavedChanges || isSaving || !initialContentLoaded.current || !initialFrontmatterLoaded.current) return;
+
+    setAutoSaveStatus('saving');
+    const timer = window.setTimeout(async () => {
+      try {
+        const content = await blocksToMarkdown(editor);
+        const updatedAt = new Date().toISOString();
+        const draft: AutoSaveDraft = { postId, updatedAt, frontmatter, content };
+        localStorage.setItem(getAutoSaveKey(postId), JSON.stringify(draft));
+        setAutoSaveStatus('saved');
+        setAutoSaveTime(updatedAt);
+      } catch {
+        setAutoSaveStatus('idle');
+      }
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [editor, editorRevision, frontmatter, hasUnsavedChanges, isSaving, postId]);
 
   // Handle frontmatter changes
   const handleFrontmatterChange = useCallback((fm: BlogSchema) => {
@@ -223,7 +294,10 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
           setCategoryMap({ ...currentMap, ...categoryMappings });
         }
 
+        clearAutoSaveDraft(postId);
         setHasUnsavedChanges(false);
+        setAutoSaveStatus('idle');
+        setAutoSaveTime(null);
         toast.success('文章已保存');
         onSaved?.();
       } catch (err) {
@@ -388,7 +462,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
           <Icon icon="ri:error-warning-line" className="size-12 text-destructive" />
           <p className="text-destructive">{error}</p>
           <Button variant="outline" onClick={onClose}>
-            Close
+            关闭
           </Button>
         </div>
       </div>
@@ -413,6 +487,11 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
             <p className="text-muted-foreground text-xs">{postId}</p>
           </div>
           {hasUnsavedChanges && <span className="rounded bg-orange-500/10 px-2 py-0.5 text-orange-500 text-xs">未保存</span>}
+          {autoSaveStatus !== 'idle' && (
+            <span className="rounded bg-sky-500/10 px-2 py-0.5 text-sky-300 text-xs">
+              {autoSaveStatus === 'saving' ? '正在自动保存...' : autoSaveStatus === 'restored' ? '已恢复本地草稿' : `已自动保存 ${formatAutoSaveTime(autoSaveTime)}`}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

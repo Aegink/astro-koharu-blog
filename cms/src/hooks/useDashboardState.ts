@@ -10,7 +10,7 @@ import { getCMSConfig, listPosts, toggleDraft, toggleSticky } from '@/lib/api';
 import { buildEditorUrl, buildFilePath, getDefaultEditor } from '@/lib/editor-url';
 import type { ListPostsResponse } from '@/types';
 
-export type Tab = 'overview' | 'posts' | 'config';
+export type Tab = 'overview' | 'posts' | 'media' | 'taxonomy' | 'config' | 'deploy';
 export type StatusFilter = 'all' | 'draft' | 'published';
 export type SortField = 'date' | 'updated' | 'title';
 export type SortOrder = 'asc' | 'desc';
@@ -147,7 +147,7 @@ export function useDashboardState(): UseDashboardStateResult {
 
   const handleCreatePostSuccess = useCallback(
     (postId: string) => {
-      toast.success('Post created successfully');
+      toast.success('文章已创建，正在打开编辑器');
       setIsCreateDialogOpen(false);
       setEditingPostId(postId);
       fetchData();
