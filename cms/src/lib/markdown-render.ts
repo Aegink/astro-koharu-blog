@@ -71,6 +71,76 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+const CSS_IDENT = /^[a-zA-Z_-][a-zA-Z0-9_-]*$/;
+
+function extractShokaClasses(rawAttrs?: string): string[] {
+  if (!rawAttrs) return [];
+
+  return rawAttrs
+    .slice(1, -1)
+    .split(/\s+/)
+    .filter((token) => token.startsWith('.'))
+    .map((token) => token.slice(1))
+    .filter((className) => CSS_IDENT.test(className));
+}
+
+function classAttribute(classes: string[]): string {
+  if (classes.length === 0) return '';
+  return ` class="${classes.map(escapeHtml).join(' ')}"`;
+}
+
+function processOutsideProtectedRegions(text: string, transform: (segment: string) => string): string {
+  const protectedRegex = /(^`{3,}.*\n[\s\S]*?^`{3,}\s*$|^~{3,}.*\n[\s\S]*?^~{3,}\s*$|`[^`\n]+`|\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/gm;
+  let lastIndex = 0;
+  const parts: string[] = [];
+
+  for (let match = protectedRegex.exec(text); match !== null; match = protectedRegex.exec(text)) {
+    if (match.index > lastIndex) {
+      parts.push(transform(text.slice(lastIndex, match.index)));
+    }
+    parts.push(match[0]);
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(transform(text.slice(lastIndex)));
+  }
+
+  return parts.length > 0 ? parts.join('') : transform(text);
+}
+
+function preprocessCmsShokaSyntax(content: string): string {
+  return processOutsideProtectedRegions(content, (segment) => {
+    let result = segment;
+
+    result = result.replace(/\{([^{}^.][^{}^]*)\^([^{}]+)\}/g, (_, baseText: string, annotation: string) => {
+      if (annotation === '*') {
+        return `<span class="text-emphasis-dot">${escapeHtml(baseText)}</span>`;
+      }
+
+      const rubyText = annotation.startsWith('=') ? annotation.slice(1) : annotation;
+      return `<ruby>${escapeHtml(baseText)}<rp>(</rp><rt>${escapeHtml(rubyText)}</rt><rp>)</rp></ruby>`;
+    });
+
+    result = result.replace(/\+\+([^+\n]+?)\+\+(\{[^}\n]+\})?/g, (_, inner: string, attrs?: string) => {
+      return `<ins${classAttribute(extractShokaClasses(attrs))}>${escapeHtml(inner)}</ins>`;
+    });
+
+    result = result.replace(/==([^=\n]+?)==(\{[^}\n]+\})?/g, (_, inner: string, attrs?: string) => {
+      return `<mark${classAttribute(extractShokaClasses(attrs))}>${escapeHtml(inner)}</mark>`;
+    });
+
+    result = result.replace(/!!([^!\n]+?)!!(\{[^}\n]+\})?/g, (_, inner: string, attrs?: string) => {
+      const classes = ['spoiler', ...extractShokaClasses(attrs)];
+      return `<span${classAttribute(classes)}>${escapeHtml(inner)}</span>`;
+    });
+
+    result = result.replace(/(?<![~\\])~([^~\s]+)~(?!~)/g, (_, inner: string) => `<sub>${escapeHtml(inner)}</sub>`);
+    result = result.replace(/(?<![\\^])\^([^^\s]+)\^/g, (_, inner: string) => `<sup>${escapeHtml(inner)}</sup>`);
+
+    return result;
+  });
+}
 /**
  * Create Shiki extension for marked
  */
@@ -137,6 +207,6 @@ function getMarked(): Marked {
  */
 export async function renderMarkdown(content: string): Promise<string> {
   const marked = getMarked();
-  const html = await marked.parse(content);
+  const html = await marked.parse(preprocessCmsShokaSyntax(content));
   return html;
 }

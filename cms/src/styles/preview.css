@@ -59,6 +59,86 @@
   text-decoration: underline;
 }
 
+/* Shoka inline syntax */
+.preview-content ins {
+  color: oklch(0.78 0.12 215);
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
+}
+
+.preview-content ins.wavy {
+  text-decoration-style: wavy;
+}
+
+.preview-content ins.dot,
+.preview-content ins.dotted {
+  text-decoration-style: dotted;
+}
+
+.preview-content mark {
+  border-radius: 0.25rem;
+  background: oklch(0.82 0.14 78 / 0.28);
+  color: oklch(0.95 0.04 78);
+  padding: 0.05em 0.25em;
+}
+
+.preview-content .spoiler {
+  border-radius: 0.25rem;
+  background: var(--color-muted);
+  color: transparent;
+  cursor: help;
+  text-shadow: 0 0 0.45rem var(--color-foreground);
+  transition:
+    color 0.2s ease,
+    text-shadow 0.2s ease;
+}
+
+.preview-content .spoiler:hover,
+.preview-content .spoiler:focus {
+  color: var(--color-foreground);
+  text-shadow: none;
+}
+
+.preview-content ruby {
+  ruby-position: over;
+}
+
+.preview-content rt {
+  color: var(--color-muted-foreground);
+  font-size: 0.72em;
+}
+
+.preview-content sub,
+.preview-content sup {
+  color: oklch(0.82 0.11 260);
+  font-size: 0.72em;
+}
+
+.preview-content .text-emphasis-dot {
+  text-emphasis: filled circle;
+  -webkit-text-emphasis: filled circle;
+}
+
+.preview-content .primary {
+  color: var(--color-primary);
+}
+
+.preview-content .success {
+  color: oklch(0.72 0.16 145);
+}
+
+.preview-content .warning {
+  color: oklch(0.82 0.14 78);
+}
+
+.preview-content .danger {
+  color: oklch(0.72 0.18 25);
+}
+
+.preview-content .info {
+  color: oklch(0.74 0.14 230);
+}
 /* Inline code */
 .preview-content :not(pre) > code {
   background: oklch(0.865 0.182 281 / 0.08);

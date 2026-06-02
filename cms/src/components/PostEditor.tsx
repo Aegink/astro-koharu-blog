@@ -1,7 +1,7 @@
 /**
  * Post Editor
  *
- * Full-screen editor for blog posts with BlockNote editor and frontmatter panel.
+ * Full-screen editor for blog posts with Markdown source mode and frontmatter panel.
  * Supports Cmd+S save, new category detection, and unsaved changes warning.
  */
 
@@ -10,7 +10,7 @@ import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/shadcn';
 import '@blocknote/shadcn/style.css';
 import { Icon } from '@iconify/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { toast } from 'sonner';
 import { CategoryMappingDialog } from '@/components/CategoryMappingDialog';
@@ -18,7 +18,7 @@ import { EditorTOC } from '@/components/EditorTOC';
 import { FrontmatterEditor, type FrontmatterEditorRef } from '@/components/FrontmatterEditor';
 import { MarkdownPreview } from '@/components/MarkdownPreview';
 import { Button } from '@/components/ui/button';
-import { useEditorHeadings } from '@/hooks';
+import { type EditorHeading, useEditorHeadings } from '@/hooks';
 import { readPost, writePost } from '@/lib/api';
 import { detectNewCategories, getCategoryMap, setCategoryMap } from '@/lib/category';
 import { DEV_SERVER_URL } from '@/lib/client-config';
@@ -103,6 +103,7 @@ async function markdownToBlocks(editor: ReturnType<typeof useCreateBlockNote>, m
 }
 
 type SidebarTab = 'frontmatter' | 'toc' | 'preview';
+type EditorMode = 'markdown' | 'rich';
 
 const SIDEBAR_WIDTH_KEY = 'cms-sidebar-width';
 const SIDEBAR_DEFAULT_WIDTH = 320;
@@ -143,6 +144,36 @@ function formatAutoSaveTime(value: string | null): string {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function extractMarkdownHeadings(markdown: string): EditorHeading[] {
+  const headings: EditorHeading[] = [];
+  let inFence = false;
+
+  markdown.split(/\r?\n/).forEach((line, index) => {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      return;
+    }
+    if (inFence) return;
+
+    const match = /^(#{1,3})\s+(.+?)\s*#*\s*$/.exec(line);
+    if (!match) return;
+
+    const marks = match[1];
+    const rawText = match[2];
+    if (!marks || !rawText) return;
+
+    const text = rawText
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[`*_~+=!{}[\]()]/g, '')
+      .trim();
+    if (!text) return;
+
+    headings.push({ id: `md-line-${index}`, text, level: marks.length as 1 | 2 | 3 });
+  });
+
+  return headings;
+}
+
 export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -165,7 +196,10 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   const [frontmatter, setFrontmatter] = useState<BlogSchema>({ title: '' });
   const frontmatterRef = useRef<FrontmatterEditorRef>(null);
 
-  // 预览 state
+  // Markdown source and preview state
+  const [editorMode, setEditorMode] = useState<EditorMode>('markdown');
+  const [markdownContent, setMarkdownContent] = useState('');
+  const markdownTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [previewContent, setPreviewContent] = useState('');
 
   // Category state
@@ -179,7 +213,8 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   const initialFrontmatterLoaded = useRef(false);
 
   // Extract headings for TOC
-  const headings = useEditorHeadings(editor);
+  const richHeadings = useEditorHeadings(editor);
+  const headings = editorMode === 'markdown' ? extractMarkdownHeadings(markdownContent) : richHeadings;
 
   // Load post data
   useEffect(() => {
@@ -197,13 +232,19 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         const nextContent = shouldRestore && draft ? draft.content : data.content;
 
         setFrontmatter(nextFrontmatter);
+        setMarkdownContent(nextContent || '');
+        setPreviewContent(nextContent || '');
         initialFrontmatterLoaded.current = true;
 
-        // Load content into editor
+        // 富文本模式只是辅助编辑，加载失败不能影响 Markdown 源码编辑。
         if (editor) {
-          await markdownToBlocks(editor, nextContent || '');
-          initialContentLoaded.current = true;
+          try {
+            await markdownToBlocks(editor, nextContent || '');
+          } catch (parseError) {
+            console.warn('富文本模式解析 Markdown 失败，已保留源码模式:', parseError);
+          }
         }
+        initialContentLoaded.current = true;
 
         setHasUnsavedChanges(Boolean(shouldRestore));
         setAutoSaveStatus(shouldRestore ? 'restored' : 'idle');
@@ -218,28 +259,27 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
     loadPost();
   }, [postId, editor]);
 
-  // Track content changes
+  // Track rich-text changes. Markdown source edits are handled by the textarea change handler.
   useEffect(() => {
     if (!editor) return;
 
     const unsubscribe = editor.onChange(() => {
-      // Only mark as changed after initial content is loaded
-      if (initialContentLoaded.current) {
-        setHasUnsavedChanges(true);
-        setEditorRevision((revision) => revision + 1);
-      }
+      if (editorMode !== 'rich' || !initialContentLoaded.current) return;
+      setHasUnsavedChanges(true);
+      setEditorRevision((revision) => revision + 1);
     });
 
     return unsubscribe;
-  }, [editor]);
+  }, [editor, editorMode]);
 
   useEffect(() => {
-    if (!editor || !hasUnsavedChanges || isSaving || !initialContentLoaded.current || !initialFrontmatterLoaded.current) return;
+    if (!hasUnsavedChanges || isSaving || !initialContentLoaded.current || !initialFrontmatterLoaded.current) return;
+    if (editorMode === 'rich' && !editor) return;
 
     setAutoSaveStatus('saving');
     const timer = window.setTimeout(async () => {
       try {
-        const content = await blocksToMarkdown(editor);
+        const content = editorMode === 'markdown' || !editor ? markdownContent : await blocksToMarkdown(editor);
         const updatedAt = new Date().toISOString();
         const draft: AutoSaveDraft = { postId, updatedAt, frontmatter, content };
         localStorage.setItem(getAutoSaveKey(postId), JSON.stringify(draft));
@@ -251,7 +291,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
     }, AUTOSAVE_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [editor, editorRevision, frontmatter, hasUnsavedChanges, isSaving, postId]);
+  }, [editor, editorMode, editorRevision, frontmatter, hasUnsavedChanges, isSaving, markdownContent, postId]);
 
   // Handle frontmatter changes
   const handleFrontmatterChange = useCallback((fm: BlogSchema) => {
@@ -267,15 +307,55 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
     setCurrentCategories(categories);
   }, []);
 
+  const handleMarkdownChange = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
+    const nextContent = event.target.value;
+    setMarkdownContent(nextContent);
+    setPreviewContent(nextContent);
+    if (initialContentLoaded.current) {
+      setHasUnsavedChanges(true);
+    }
+  }, []);
+
+  const handleEditorModeChange = useCallback(
+    async (nextMode: EditorMode) => {
+      if (nextMode === editorMode) return;
+      if (!editor) return;
+
+      if (nextMode === 'rich') {
+        const confirmed = window.confirm('富文本辅助会把当前 Markdown 解析成块，复杂 Shoka 语法可能显示不完整。继续切换吗？');
+        if (!confirmed) return;
+
+        try {
+          await markdownToBlocks(editor, markdownContent);
+          setEditorMode('rich');
+          toast.info('已切换到富文本辅助模式');
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : '富文本模式解析失败');
+        }
+        return;
+      }
+
+      const confirmed = window.confirm('从富文本切回 Markdown 源码会导出 Markdown，复杂 Shoka 语法可能有损。继续切换吗？');
+      if (!confirmed) return;
+
+      try {
+        const content = await blocksToMarkdown(editor);
+        setMarkdownContent(content);
+        setPreviewContent(content);
+        setEditorMode('markdown');
+        setHasUnsavedChanges(true);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Markdown 导出失败');
+      }
+    },
+    [editor, editorMode, markdownContent],
+  );
   // Actual save operation (defined first so handleSave can reference it)
   const performSave = useCallback(
     async (categoryMappings?: Record<string, string>) => {
-      if (!editor) return;
-
       setIsSaving(true);
       try {
-        // Get markdown content
-        const content = await blocksToMarkdown(editor);
+        const content = editorMode === 'markdown' || !editor ? markdownContent : await blocksToMarkdown(editor);
 
         // Update the updated date
         const now = new Date();
@@ -287,6 +367,11 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         };
 
         await writePost(postId, updatedFrontmatter, content, categoryMappings);
+
+        if (editorMode === 'rich') {
+          setMarkdownContent(content);
+        }
+        setPreviewContent(content);
 
         // Update category map if we added new mappings
         if (categoryMappings) {
@@ -306,13 +391,11 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         setIsSaving(false);
       }
     },
-    [editor, frontmatter, postId, onSaved],
+    [editor, editorMode, frontmatter, markdownContent, postId, onSaved],
   );
 
   // 保存 post with new category detection
   const handleSave = useCallback(async () => {
-    if (!editor) return;
-
     // Check for new categories
     const newCats = detectNewCategories(currentCategories);
     if (Object.keys(newCats).length > 0) {
@@ -322,8 +405,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
     }
 
     await performSave();
-  }, [editor, currentCategories, performSave]);
-
+  }, [currentCategories, performSave]);
   // Handle category mapping confirmation
   const handleCategoryMappingConfirm = useCallback(
     (mappings: Record<string, string>) => {
@@ -413,6 +495,22 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   // Handle TOC navigation
   const handleTOCNavigate = useCallback(
     (blockId: string) => {
+      if (editorMode === 'markdown') {
+        const textarea = markdownTextareaRef.current;
+        const match = /^md-line-(\d+)$/.exec(blockId);
+        if (!textarea || !match?.[1]) return;
+
+        const lineIndex = Number(match[1]);
+        const linesBefore = markdownContent.split(/\r?\n/).slice(0, lineIndex);
+        const cursorPosition = linesBefore.reduce((sum, line) => sum + line.length + 1, 0);
+        const approximateLineHeight = 28;
+
+        textarea.focus();
+        textarea.setSelectionRange(cursorPosition, cursorPosition);
+        textarea.scrollTop = Math.max(0, lineIndex * approximateLineHeight - textarea.clientHeight / 3);
+        return;
+      }
+
       if (!editor) return;
 
       // Set cursor position and focus
@@ -428,22 +526,20 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         }
       });
     },
-    [editor],
+    [editor, editorMode, markdownContent],
   );
 
   // Handle sidebar tab change
   const handleTabChange = useCallback(
     async (tab: SidebarTab) => {
-      if (tab === 'preview' && editor) {
-        // Convert blocks to markdown when switching to preview
-        const md = await blocksToMarkdown(editor);
+      if (tab === 'preview') {
+        const md = editorMode === 'markdown' || !editor ? markdownContent : await blocksToMarkdown(editor);
         setPreviewContent(md);
       }
       setSidebarTab(tab);
     },
-    [editor],
+    [editor, editorMode, markdownContent],
   );
-
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
@@ -495,7 +591,30 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* 预览 link */}
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1">
+            <button
+              type="button"
+              onClick={() => handleEditorModeChange('markdown')}
+              className={cn(
+                'rounded-md px-3 py-1.5 font-medium text-sm transition-colors',
+                editorMode === 'markdown' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Markdown 源码
+            </button>
+            <button
+              type="button"
+              onClick={() => handleEditorModeChange('rich')}
+              className={cn(
+                'rounded-md px-3 py-1.5 font-medium text-sm transition-colors',
+                editorMode === 'rich' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              富文本辅助
+            </button>
+          </div>
+
+          {/* 预览 link */}          {/* 预览 link */}
           <a
             href={getPreviewUrl()}
             target="_blank"
@@ -540,13 +659,45 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Editor */}
         <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-3xl p-6">
-            <ErrorBoundary FallbackComponent={EditorErrorFallback}>
-              <BlockNoteView editor={editor} theme="dark" />
-            </ErrorBoundary>
+          <div className="mx-auto flex min-h-full max-w-5xl flex-col gap-4 p-6">
+            {editorMode === 'markdown' ? (
+              <>
+                <div className="flex items-start gap-3 rounded-xl border border-sky-500/20 bg-sky-500/10 p-4 text-sky-100">
+                  <Icon icon="ri:markdown-line" className="mt-0.5 size-5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Markdown 源码模式</p>
+                    <p className="mt-1 text-sky-100/75 text-xs">
+                      这里直接编辑 .md 原文，会完整保留 Shoka 扩展语法；右侧“预览”用于快速检查效果。
+                    </p>
+                  </div>
+                </div>
+                <textarea
+                  ref={markdownTextareaRef}
+                  value={markdownContent}
+                  onChange={handleMarkdownChange}
+                  spellCheck={false}
+                  className="min-h-[calc(100vh-13rem)] w-full resize-none rounded-xl border border-border bg-card px-5 py-4 font-mono text-sm leading-7 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  placeholder="在这里编写 Markdown 正文..."
+                />
+              </>
+            ) : (
+              <>
+                <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-amber-100">
+                  <Icon icon="ri:edit-box-line" className="mt-0.5 size-5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">富文本辅助模式</p>
+                    <p className="mt-1 text-amber-100/75 text-xs">
+                      适合改普通段落和标题；复杂 Shoka 语法可能无法完整显示，正式写作建议使用 Markdown 源码模式。
+                    </p>
+                  </div>
+                </div>
+                <ErrorBoundary FallbackComponent={EditorErrorFallback}>
+                  <BlockNoteView editor={editor} theme="dark" />
+                </ErrorBoundary>
+              </>
+            )}
           </div>
         </main>
-
         {/* Resize Handle */}
         {showSidebar && (
           <hr
