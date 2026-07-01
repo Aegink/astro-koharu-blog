@@ -31,6 +31,7 @@ categoryMap:
   工具: tools
   周刊: weekly
   前端: front-end
+  阅读: yue-du
 featuredCategories:
   - label: 随笔
     link: life
