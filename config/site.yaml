@@ -36,6 +36,10 @@ categoryMap:
   周刊: weekly
   前端: front-end
   阅读: yue-du
+  旧博客: legacy
+  技术分享: technology-sharing
+  知识科普: knowledge-popularization
+  未分类: uncategorized
 featuredCategories:
   - label: 随笔
     link: life
