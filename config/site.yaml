@@ -16,15 +16,19 @@ site:
     - Astro
     - 技术
     - 前端
+  enableSlugTransliteration: false
 i18n:
   defaultLocale: zh
   locales:
     - code: zh
       label: 中文
+      enabled: true
     - code: en
       label: English
+      enabled: true
     - code: ja
       label: 日本語
+      enabled: true
 categoryMap:
   随笔: life
   笔记: note
@@ -54,16 +58,13 @@ featuredSeries:
     categoryName: 周刊
     label: 我的周刊
     fullName: 我的技术周刊
-    description: |
-      这是周刊/系列文章功能的示例配置。
-      你可以用它来发布定期更新的系列内容，如技术周刊、读书笔记系列等。
-      设置 enabled: false 可以关闭此功能。
     cover: /img/weekly_header.webp
-    enabled: true
     icon: ri:newspaper-line
+    enabled: true
     links:
       github: https://github.com/your-username/your-repo
       rss: /rss.xml
+    description: '这是周刊/系列文章功能的示例配置。 你可以用它来发布定期更新的系列内容，如技术周刊、读书笔记系列等。 设置 enabled: false 可以关闭此功能。'
 social:
   github:
     url: https://github.com/your-username
@@ -186,6 +187,15 @@ comment:
     repoId: ''
   waline:
     serverURL: ''
+    wordLimit: 0
+    imageUploader: false
+    highlighter: true
+    texRenderer: false
+    search: false
+    noCopyright: false
+  remark42:
+    host: ''
+    siteId: ''
 analytics:
   umami:
     enabled: true
@@ -203,13 +213,24 @@ bgm:
       list:
         - https://music.163.com/playlist?id=8882890045
 christmas:
-  enabled: false
+  enabled: true
   features:
     snowfall: true
     christmasColorScheme: true
     christmasHat: true
+    christmasCoverDecoration: true
+    readingTimeSnow: true
+  snowfall:
+    speed: 0.5
+    intensity: 0.7
+    mobileIntensity: 0.4
+    maxLayers: 6
+    maxIterations: 8
+    mobileMaxLayers: 4
+    mobileMaxIterations: 6
 bangumi:
   userId: cosine
+  icon: ri:bilibili-fill
 dev:
   localProjectPath: /Users/yourname/path/to/astro-koharu
   contentRelativePath: src/content/blog
@@ -226,3 +247,4 @@ dev:
       name: Zed
       icon: simple-icons:zedindustries
       urlTemplate: zed://file/{path}
+defaultCoverList: []
