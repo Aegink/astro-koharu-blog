@@ -154,7 +154,7 @@ export function isSafeMarkdownPath(postId: string): boolean {
 }
 
 export function isSafeMediaPath(filePath: string): boolean {
-  return filePath.startsWith(`${MEDIA_DIR}/`) && !filePath.includes('..') && /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(filePath);
+  return filePath.startsWith(`${MEDIA_ROOT_DIR}/`) && !filePath.includes('..') && /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(filePath);
 }
 
 function dateToString(date: Date): string {

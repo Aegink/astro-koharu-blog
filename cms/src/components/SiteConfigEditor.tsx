@@ -20,7 +20,7 @@ type ConfigForm = {
   featuredCategories: string; navigation: string;
   friendsTitle: string; friendsSubtitle: string; friendsApplyTitle: string; friendsApplyDesc: string; friendsData: string; announcements: string;
   commentProvider: string; twikooEnvId: string; giscusRepo: string; giscusRepoId: string; walineServerURL: string;
-  umamiEnabled: boolean; umamiId: string; umamiEndpoint: string; bgmEnabled: boolean; bgmAudio: string; christmasEnabled: boolean; snowfall: boolean; christmasColorScheme: boolean; christmasHat: boolean; enableLinkEmbed: boolean; enableMath: boolean; enableCodeCopy: boolean;
+  umamiEnabled: boolean; umamiId: string; umamiEndpoint: string; bgmEnabled: boolean; bgmMetingApi: string; bgmAudio: string; bangumiEnabled: boolean; bangumiUserId: string; bangumiLabel: string; bangumiIcon: string; christmasEnabled: boolean; snowfall: boolean; christmasColorScheme: boolean; christmasHat: boolean; enableLinkEmbed: boolean; enableMath: boolean; enableCodeCopy: boolean;
   categoryMap: string;
 };
 type ConfigTab = 'basic' | 'social' | 'home' | 'friends' | 'features' | 'category' | 'advanced';
@@ -30,7 +30,7 @@ const emptyForm: ConfigForm = {
   githubUrl: '', emailUrl: '', rssUrl: '/rss.xml', socialLinks: '',
   featuredCategories: '', navigation: '', friendsTitle: '', friendsSubtitle: '', friendsApplyTitle: '', friendsApplyDesc: '', friendsData: '', announcements: '',
   commentProvider: 'none', twikooEnvId: '', giscusRepo: '', giscusRepoId: '', walineServerURL: '',
-  umamiEnabled: false, umamiId: '', umamiEndpoint: '', bgmEnabled: false, bgmAudio: '', christmasEnabled: false, snowfall: true, christmasColorScheme: true, christmasHat: true, enableLinkEmbed: true, enableMath: true, enableCodeCopy: true,
+  umamiEnabled: false, umamiId: '', umamiEndpoint: '', bgmEnabled: false, bgmMetingApi: '', bgmAudio: '', bangumiEnabled: false, bangumiUserId: '', bangumiLabel: '', bangumiIcon: 'ri:bilibili-fill', christmasEnabled: false, snowfall: true, christmasColorScheme: true, christmasHat: true, enableLinkEmbed: true, enableMath: true, enableCodeCopy: true,
   categoryMap: '',
 };
 
@@ -64,6 +64,7 @@ function toForm(content: string): ConfigForm {
   const comment = asRecord(config.comment);
   const analytics = asRecord(asRecord(config.analytics).umami);
   const bgm = asRecord(config.bgm);
+  const bangumi = asRecord(config.bangumi);
   const christmas = asRecord(config.christmas);
   const christmasFeatures = asRecord(christmas.features);
   const contentOptions = asRecord(config.content);
@@ -82,7 +83,8 @@ function toForm(content: string): ConfigForm {
     friendsData: asArray(friends.data).map((item) => `${item.site || ''} | ${item.url || ''} | ${item.owner || ''} | ${item.desc || ''} | ${item.image || ''} | ${item.color || ''}`).join('\n'),
     announcements: asArray(config.announcements).map((item) => `${item.id || ''} | ${item.title || ''} | ${item.content || ''} | ${item.type || 'info'} | ${item.priority ?? 1} | ${item.publishDate || ''} | ${item.color || ''}`).join('\n'),
     commentProvider: comment.provider || 'none', twikooEnvId: asRecord(comment.twikoo).envId || '', giscusRepo: asRecord(comment.giscus).repo || '', giscusRepoId: asRecord(comment.giscus).repoId || '', walineServerURL: asRecord(comment.waline).serverURL || '',
-    umamiEnabled: Boolean(analytics.enabled), umamiId: analytics.id || '', umamiEndpoint: analytics.endpoint || '', bgmEnabled: bgm.enabled !== false, bgmAudio: asArray(bgm.audio).map((item) => `${item.title || ''} | ${Array.isArray(item.list) ? item.list.join(', ') : ''}`).join('\n'),
+    umamiEnabled: Boolean(analytics.enabled), umamiId: analytics.id || '', umamiEndpoint: analytics.endpoint || '', bgmEnabled: bgm.enabled !== false, bgmMetingApi: bgm.metingApi || '', bgmAudio: asArray(bgm.audio).map((item) => `${item.title || ''} | ${Array.isArray(item.list) ? item.list.join(', ') : ''}`).join('\n'),
+    bangumiEnabled: Boolean(bangumi.userId), bangumiUserId: bangumi.userId || '', bangumiLabel: bangumi.label || '', bangumiIcon: bangumi.icon || 'ri:bilibili-fill',
     christmasEnabled: Boolean(christmas.enabled), snowfall: christmasFeatures.snowfall !== false, christmasColorScheme: christmasFeatures.christmasColorScheme !== false, christmasHat: christmasFeatures.christmasHat !== false,
     enableLinkEmbed: contentOptions.enableLinkEmbed !== false, enableMath: contentOptions.enableMath !== false, enableCodeCopy: contentOptions.enableCodeCopy !== false,
     categoryMap: mapToLines(asRecord(config.categoryMap) as Record<string, string>),
@@ -156,7 +158,19 @@ function buildConfig(content: string, form: ConfigForm): string {
   const comment = asRecord(config.comment);
   config.comment = { ...comment, provider: form.commentProvider, twikoo: { ...asRecord(comment.twikoo), envId: form.twikooEnvId.trim() }, giscus: { ...asRecord(comment.giscus), repo: form.giscusRepo.trim(), repoId: form.giscusRepoId.trim() }, waline: { ...asRecord(comment.waline), serverURL: form.walineServerURL.trim() } };
   config.analytics = { ...asRecord(config.analytics), umami: { ...asRecord(asRecord(config.analytics).umami), enabled: form.umamiEnabled, id: form.umamiId.trim(), endpoint: form.umamiEndpoint.trim() } };
-  config.bgm = { ...asRecord(config.bgm), enabled: form.bgmEnabled, audio: parseBgmAudio(form.bgmAudio) };
+  const bgmConfig: YamlRecord = { ...asRecord(config.bgm), enabled: form.bgmEnabled, audio: parseBgmAudio(form.bgmAudio) };
+  if (form.bgmMetingApi.trim()) bgmConfig.metingApi = form.bgmMetingApi.trim();
+  else delete bgmConfig.metingApi;
+  config.bgm = bgmConfig;
+  if (form.bangumiEnabled && form.bangumiUserId.trim()) {
+    config.bangumi = {
+      userId: form.bangumiUserId.trim(),
+      ...(form.bangumiLabel.trim() ? { label: form.bangumiLabel.trim() } : {}),
+      ...(form.bangumiIcon.trim() ? { icon: form.bangumiIcon.trim() } : {}),
+    };
+  } else {
+    delete config.bangumi;
+  }
   config.christmas = { ...asRecord(config.christmas), enabled: form.christmasEnabled, features: { ...asRecord(asRecord(config.christmas).features), snowfall: form.snowfall, christmasColorScheme: form.christmasColorScheme, christmasHat: form.christmasHat } };
   config.content = { ...asRecord(config.content), enableLinkEmbed: form.enableLinkEmbed, enableMath: form.enableMath, enableCodeCopy: form.enableCodeCopy };
   config.categoryMap = parseCategoryMap(form.categoryMap);
@@ -215,7 +229,76 @@ export function SiteConfigEditor() {
           {activeTab === 'social' && <div className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><Field label="GitHub 链接"><TextInput value={form.githubUrl} onChange={(e) => updateForm('githubUrl', e.target.value)} /></Field><Field label="邮箱链接"><TextInput value={form.emailUrl} onChange={(e) => updateForm('emailUrl', e.target.value)} /></Field><Field label="RSS 地址"><TextInput value={form.rssUrl} onChange={(e) => updateForm('rssUrl', e.target.value)} /></Field></div><Field label="全部社交链接" hint="每行：平台键名 | 链接 | Iconify 图标 | 颜色，例如 bilibili | https://space.bilibili.com/... | ri:bilibili-fill | #da708a"><TextArea value={form.socialLinks} onChange={(e) => updateForm('socialLinks', e.target.value)} rows={8} /></Field></div>}
           {activeTab === 'home' && <div className="space-y-4"><Field label="首页精选分类" hint="每行：显示名 | 分类路径 | 图片 | 描述"><TextArea value={form.featuredCategories} onChange={(e) => updateForm('featuredCategories', e.target.value)} rows={8} /></Field><Field label="顶部导航" hint="每行：名称 | 路径 | 图标 | 翻译键。子菜单行前面加两个空格。"><TextArea value={form.navigation} onChange={(e) => updateForm('navigation', e.target.value)} rows={10} /></Field></div>}
           {activeTab === 'friends' && <div className="space-y-4"><div className="grid gap-4 md:grid-cols-2"><Field label="友链页标题"><TextInput value={form.friendsTitle} onChange={(e) => updateForm('friendsTitle', e.target.value)} /></Field><Field label="友链页副标题"><TextInput value={form.friendsSubtitle} onChange={(e) => updateForm('friendsSubtitle', e.target.value)} /></Field><Field label="申请区标题"><TextInput value={form.friendsApplyTitle} onChange={(e) => updateForm('friendsApplyTitle', e.target.value)} /></Field><Field label="申请说明"><TextInput value={form.friendsApplyDesc} onChange={(e) => updateForm('friendsApplyDesc', e.target.value)} /></Field></div><Field label="友链列表" hint="每行：站点名 | URL | 站长 | 描述 | 头像 | 颜色"><TextArea value={form.friendsData} onChange={(e) => updateForm('friendsData', e.target.value)} rows={8} /></Field><Field label="公告列表" hint="每行：ID | 标题 | 内容 | 类型(info/success/warning/error) | 优先级 | 发布日期 | 颜色"><TextArea value={form.announcements} onChange={(e) => updateForm('announcements', e.target.value)} rows={8} /></Field></div>}
-          {activeTab === 'features' && <div className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><CheckField label="链接卡片预览" checked={form.enableLinkEmbed} onChange={(v) => updateForm('enableLinkEmbed', v)} /><CheckField label="数学公式" checked={form.enableMath} onChange={(v) => updateForm('enableMath', v)} /><CheckField label="代码复制按钮" checked={form.enableCodeCopy} onChange={(v) => updateForm('enableCodeCopy', v)} /><CheckField label="Umami 统计" checked={form.umamiEnabled} onChange={(v) => updateForm('umamiEnabled', v)} /><CheckField label="背景音乐" checked={form.bgmEnabled} onChange={(v) => updateForm('bgmEnabled', v)} /><CheckField label="圣诞/季节特效" checked={form.christmasEnabled} onChange={(v) => updateForm('christmasEnabled', v)} /></div><div className="grid gap-4 md:grid-cols-3"><Field label="评论系统"><select value={form.commentProvider} onChange={(e) => updateForm('commentProvider', e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none"><option value="none">关闭评论</option><option value="twikoo">Twikoo</option><option value="giscus">Giscus</option><option value="waline">Waline</option><option value="remark42">Remark42</option></select></Field><Field label="Twikoo 地址"><TextInput value={form.twikooEnvId} onChange={(e) => updateForm('twikooEnvId', e.target.value)} /></Field><Field label="Waline 地址"><TextInput value={form.walineServerURL} onChange={(e) => updateForm('walineServerURL', e.target.value)} /></Field><Field label="Giscus Repo"><TextInput value={form.giscusRepo} onChange={(e) => updateForm('giscusRepo', e.target.value)} /></Field><Field label="Giscus Repo ID"><TextInput value={form.giscusRepoId} onChange={(e) => updateForm('giscusRepoId', e.target.value)} /></Field><Field label="Umami ID"><TextInput value={form.umamiId} onChange={(e) => updateForm('umamiId', e.target.value)} /></Field><Field label="Umami 地址"><TextInput value={form.umamiEndpoint} onChange={(e) => updateForm('umamiEndpoint', e.target.value)} /></Field></div><Field label="背景音乐歌单" hint="每行：分组标题 | 歌单链接1, 歌单链接2"><TextArea value={form.bgmAudio} onChange={(e) => updateForm('bgmAudio', e.target.value)} rows={5} /></Field><div className="grid gap-4 md:grid-cols-3"><CheckField label="飘雪效果" checked={form.snowfall} onChange={(v) => updateForm('snowfall', v)} /><CheckField label="圣诞配色" checked={form.christmasColorScheme} onChange={(v) => updateForm('christmasColorScheme', v)} /><CheckField label="头像圣诞帽" checked={form.christmasHat} onChange={(v) => updateForm('christmasHat', v)} /></div></div>}
+          {activeTab === 'features' && (
+            <div className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-3">
+                <CheckField label="链接卡片预览" checked={form.enableLinkEmbed} onChange={(v) => updateForm('enableLinkEmbed', v)} />
+                <CheckField label="数学公式" checked={form.enableMath} onChange={(v) => updateForm('enableMath', v)} />
+                <CheckField label="代码复制按钮" checked={form.enableCodeCopy} onChange={(v) => updateForm('enableCodeCopy', v)} />
+                <CheckField label="Umami 统计" checked={form.umamiEnabled} onChange={(v) => updateForm('umamiEnabled', v)} />
+                <CheckField label="歌单 / 背景音乐" hint="控制右下角音乐播放器和歌单数据。" checked={form.bgmEnabled} onChange={(v) => updateForm('bgmEnabled', v)} />
+                <CheckField label="追番页面" hint="控制前台 /bangumi 页面和侧边栏入口。" checked={form.bangumiEnabled} onChange={(v) => updateForm('bangumiEnabled', v)} />
+                <CheckField label="圣诞/季节特效" checked={form.christmasEnabled} onChange={(v) => updateForm('christmasEnabled', v)} />
+              </div>
+
+              <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                <div className="mb-4 flex items-center gap-2 font-semibold">
+                  <Icon icon="ri:music-2-line" className="size-5 text-primary" />
+                  歌单 / 背景音乐
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Meting API 地址" hint="不填则使用前台默认接口。">
+                    <TextInput value={form.bgmMetingApi} onChange={(e) => updateForm('bgmMetingApi', e.target.value)} placeholder="https://163.hyc.moe/" />
+                  </Field>
+                  <Field label="歌单数据" hint="每行：分组标题 | 歌单链接1, 歌单链接2">
+                    <TextArea value={form.bgmAudio} onChange={(e) => updateForm('bgmAudio', e.target.value)} rows={5} placeholder="最爱山山 | https://music.163.com/playlist?id=..." />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                <div className="mb-4 flex items-center gap-2 font-semibold">
+                  <Icon icon="ri:tv-2-line" className="size-5 text-primary" />
+                  追番页面
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Field label="Bangumi 用户 ID" hint="例如 cosine；关闭追番时可留空。">
+                    <TextInput value={form.bangumiUserId} onChange={(e) => updateForm('bangumiUserId', e.target.value)} placeholder="cosine" disabled={!form.bangumiEnabled} />
+                  </Field>
+                  <Field label="导航显示名称" hint="不填则使用默认“追番”。">
+                    <TextInput value={form.bangumiLabel} onChange={(e) => updateForm('bangumiLabel', e.target.value)} placeholder="追番" disabled={!form.bangumiEnabled} />
+                  </Field>
+                  <Field label="导航图标" hint="Iconify 图标名，例如 ri:bilibili-fill。">
+                    <TextInput value={form.bangumiIcon} onChange={(e) => updateForm('bangumiIcon', e.target.value)} placeholder="ri:bilibili-fill" disabled={!form.bangumiEnabled} />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <Field label="评论系统">
+                  <select value={form.commentProvider} onChange={(e) => updateForm('commentProvider', e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none">
+                    <option value="none">关闭评论</option>
+                    <option value="twikoo">Twikoo</option>
+                    <option value="giscus">Giscus</option>
+                    <option value="waline">Waline</option>
+                    <option value="remark42">Remark42</option>
+                  </select>
+                </Field>
+                <Field label="Twikoo 地址"><TextInput value={form.twikooEnvId} onChange={(e) => updateForm('twikooEnvId', e.target.value)} /></Field>
+                <Field label="Waline 地址"><TextInput value={form.walineServerURL} onChange={(e) => updateForm('walineServerURL', e.target.value)} /></Field>
+                <Field label="Giscus Repo"><TextInput value={form.giscusRepo} onChange={(e) => updateForm('giscusRepo', e.target.value)} /></Field>
+                <Field label="Giscus Repo ID"><TextInput value={form.giscusRepoId} onChange={(e) => updateForm('giscusRepoId', e.target.value)} /></Field>
+                <Field label="Umami ID"><TextInput value={form.umamiId} onChange={(e) => updateForm('umamiId', e.target.value)} /></Field>
+                <Field label="Umami 地址"><TextInput value={form.umamiEndpoint} onChange={(e) => updateForm('umamiEndpoint', e.target.value)} /></Field>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <CheckField label="飘雪效果" checked={form.snowfall} onChange={(v) => updateForm('snowfall', v)} />
+                <CheckField label="圣诞配色" checked={form.christmasColorScheme} onChange={(v) => updateForm('christmasColorScheme', v)} />
+                <CheckField label="头像圣诞帽" checked={form.christmasHat} onChange={(v) => updateForm('christmasHat', v)} />
+              </div>
+            </div>
+          )}
           {activeTab === 'category' && <div className="space-y-4"><Field label="分类 URL 映射" hint="格式：中文分类: 英文路径。每行一个，例如：随笔: life。"><TextArea value={form.categoryMap} onChange={(e) => updateForm('categoryMap', e.target.value)} rows={12} /></Field><div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200 text-sm">分类名称会影响文章列表和分类页；右侧英文路径会影响 URL，改动后旧链接可能变化。</div></div>}
           {activeTab === 'advanced' && <div className="space-y-3"><div className="rounded-2xl border border-border bg-muted/20 p-4 text-muted-foreground text-sm">高级模式会直接保存完整 YAML。只有需要处理复杂结构时再使用。</div><TextArea value={content} onChange={(e) => setContent(e.target.value)} spellCheck={false} className="min-h-[560px] font-mono" placeholder="config/site.yaml" /></div>}
         </>}</div></div></div></div>

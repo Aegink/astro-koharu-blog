@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { type EditorHeading, useEditorHeadings } from '@/hooks';
 import { readPost, writePost } from '@/lib/api';
 import { detectNewCategories, getCategoryMap, setCategoryMap } from '@/lib/category';
-import { DEV_SERVER_URL } from '@/lib/client-config';
 import { cn } from '@/lib/utils';
 import type { BlogSchema } from '@/types';
 
@@ -172,6 +171,16 @@ function extractMarkdownHeadings(markdown: string): EditorHeading[] {
   });
 
   return headings;
+}
+
+function getPostPreviewPath(postId: string, link?: string): string {
+  const rawLink = typeof link === 'string' ? link.trim() : '';
+  if (/^https?:\/\//i.test(rawLink)) return rawLink;
+
+  const slugSource = rawLink || postId.replace(/\.mdx?$/, '');
+  const normalizedSlug = slugSource.replace(/^\/+/, '').replace(/\/+$/, '');
+  const postPath = normalizedSlug.startsWith('post/') ? normalizedSlug : `post/${normalizedSlug}`;
+  return `/${postPath}/`.replace(/\/{2,}/g, '/');
 }
 
 export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
@@ -480,16 +489,11 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
     onClose();
   }, [hasUnsavedChanges, onClose]);
 
-  // Get post preview URL (points to Astro dev server)
+  // Get post preview URL on the current deployed site.
   const getPreviewUrl = () => {
-    // Use frontmatter.link if available, otherwise extract filename from postId
-    const slug =
-      frontmatter.link ||
-      postId
-        .replace(/\.mdx?$/, '')
-        .split('/')
-        .pop();
-    return `${DEV_SERVER_URL}/post/${slug}`;
+    const previewPath = getPostPreviewPath(postId, frontmatter.link);
+    if (/^https?:\/\//i.test(previewPath)) return previewPath;
+    return `${window.location.origin}${previewPath}`;
   };
 
   // Handle TOC navigation

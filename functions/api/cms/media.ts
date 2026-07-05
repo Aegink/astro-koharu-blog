@@ -37,6 +37,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
       .filter((item) => item.type === 'blob' && item.path.startsWith(`${MEDIA_ROOT_DIR}/`) && IMAGE_RE.test(item.path))
       .map((item) => {
         const deletable = isSafeMediaPath(item.path);
+        const managed = item.path.startsWith(`${MEDIA_DIR}/`);
         return {
           name: item.path.split('/').pop() || item.path,
           path: item.path,
@@ -46,8 +47,8 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
           sha: item.sha,
           extension: item.path.split('.').pop()?.toLowerCase() || '',
           deletable,
-          managed: deletable,
-          group: deletable ? '后台上传' : '系统图片',
+          managed,
+          group: managed ? '后台上传' : '站点图片',
         };
       })
       .sort((a, b) => Number(b.deletable) - Number(a.deletable) || a.path.localeCompare(b.path, 'zh-Hans-CN'));
@@ -64,7 +65,7 @@ export async function onRequestDelete(context: { request: Request; env: Env }) {
     if (authError) return authError;
 
     const body = (await context.request.json()) as DeleteBody;
-    if (!body.path || !isSafeMediaPath(body.path)) return json({ error: '图片路径不合法，只能删除媒体库目录内的图片。' }, 400);
+    if (!body.path || !isSafeMediaPath(body.path)) return json({ error: '图片路径不合法，只能删除 public/img 下的图片文件。' }, 400);
 
     let sha = body.sha;
     if (!sha) {

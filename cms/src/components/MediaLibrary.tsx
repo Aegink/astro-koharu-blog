@@ -34,8 +34,9 @@ export function MediaLibrary() {
     return images.filter((image) => `${image.name} ${image.path} ${image.extension} ${image.group}`.toLowerCase().includes(keyword));
   }, [images, search]);
 
-  const uploadCount = images.filter((image) => image.deletable).length;
-  const readonlyCount = images.length - uploadCount;
+  const uploadCount = images.filter((image) => image.managed).length;
+  const siteImageCount = images.length - uploadCount;
+  const deletableCount = images.filter((image) => image.deletable).length;
 
   const loadImages = async () => {
     setIsLoading(true);
@@ -81,7 +82,7 @@ export function MediaLibrary() {
 
   const handleDelete = async (image: MediaImage) => {
     if (!image.deletable) {
-      toast.info('这张是系统图片，只能查看和复制，不能在后台删除。');
+      toast.info('只能删除 public/img 下的图片文件。');
       return;
     }
 
@@ -111,7 +112,7 @@ export function MediaLibrary() {
               </div>
               <h2 className="font-bold text-2xl">查看全部图片资源</h2>
               <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                当前展示 GitHub 仓库 <span className="font-mono text-foreground">{directory}</span> 下的全部图片。后台上传会写入 <span className="font-mono text-foreground">{uploadDirectory}</span>，系统图片只读，避免误删主题资源。
+                当前展示 GitHub 仓库 <span className="font-mono text-foreground">{directory}</span> 下的全部图片。后台上传会写入 <span className="font-mono text-foreground">{uploadDirectory}</span>；所有 public/img 图片都可删除，删除正在使用的图片会影响前台显示。
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -147,7 +148,7 @@ export function MediaLibrary() {
               />
             </div>
             <div className="flex items-center rounded-2xl border border-border bg-muted/20 px-4 text-muted-foreground text-sm">
-              共 {images.length} 张，当前显示 {filteredImages.length} 张；后台上传 {uploadCount} 张，系统只读 {readonlyCount} 张
+              共 {images.length} 张，当前显示 {filteredImages.length} 张；后台上传 {uploadCount} 张，站点图片 {siteImageCount} 张，可删除 {deletableCount} 张
             </div>
           </div>
 
@@ -180,7 +181,7 @@ export function MediaLibrary() {
                       {image.extension || 'image'}
                     </span>
                     <span className={cn('absolute top-3 right-3 rounded-full px-2 py-1 font-medium text-xs backdrop-blur', image.deletable ? 'bg-sky-500/80 text-white' : 'bg-black/55 text-white')}>
-                      {image.group || (image.deletable ? '后台上传' : '系统图片')}
+                      {image.group || (image.managed ? '后台上传' : '站点图片')}
                     </span>
                   </div>
                   <div className="space-y-3 p-4">
@@ -200,7 +201,7 @@ export function MediaLibrary() {
                         查看
                       </Button>
                       <Button variant={image.deletable ? 'destructive' : 'outline'} size="sm" onClick={() => handleDelete(image)} disabled={!image.deletable || deletingPath === image.path}>
-                        {deletingPath === image.path ? <Icon icon="ri:loader-4-line" className="size-4 animate-spin" /> : image.deletable ? '删除' : '只读'}
+                        {deletingPath === image.path ? <Icon icon="ri:loader-4-line" className="size-4 animate-spin" /> : image.deletable ? '删除' : '不可删'}
                       </Button>
                     </div>
                   </div>
