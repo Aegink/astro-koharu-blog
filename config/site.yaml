@@ -219,7 +219,7 @@ bgm:
 christmas:
   enabled: true
   features:
-    snowfall: true
+    snowfall: false
     christmasColorScheme: true
     christmasHat: true
     christmasCoverDecoration: true
