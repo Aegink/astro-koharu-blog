@@ -122,6 +122,7 @@ async function parsePostFile(filePath: string, contentDir: string): Promise<Post
       id: filePath,
       slug,
       title: data.title || slug,
+      description: typeof data.description === 'string' ? data.description : undefined,
       date: parseLocalDate(data.date),
       updated: data.updated ? parseLocalDate(data.updated) : undefined,
       categories,
@@ -162,7 +163,12 @@ function filterPosts(
 
   if (search) {
     const searchLower = search.toLowerCase();
-    filtered = filtered.filter((post) => post.title.toLowerCase().includes(searchLower));
+    filtered = filtered.filter((post) => {
+      const searchable = [post.title, post.id, post.slug, post.description || '', ...post.categories, ...post.tags]
+        .join(' ')
+        .toLowerCase();
+      return searchable.includes(searchLower);
+    });
   }
 
   return filtered;

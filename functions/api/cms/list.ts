@@ -1,6 +1,6 @@
 import {
-  checkAuth,
   CONTENT_DIR,
+  checkAuth,
   type Env,
   extractCategories,
   extractTags,
@@ -14,6 +14,7 @@ type PostListItem = {
   id: string;
   slug: string;
   title: string;
+  description?: string;
   date: string;
   updated?: string;
   categories: string[];
@@ -24,6 +25,12 @@ type PostListItem = {
 
 function countBy(values: string[]) {
   return [...new Set(values)].map((name) => ({ name, count: values.filter((value) => value === name).length }));
+}
+
+function getSortableValue(post: PostListItem, sort: string): string {
+  if (sort === 'title') return post.title;
+  if (sort === 'updated') return post.updated || post.date;
+  return post.date;
 }
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
@@ -41,6 +48,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
           id,
           slug: String(frontmatter.link || id.replace(/\.mdx?$/, '')),
           title: String(frontmatter.title || id),
+          description: frontmatter.description ? String(frontmatter.description) : undefined,
           date: String(frontmatter.date || ''),
           updated: frontmatter.updated ? String(frontmatter.updated) : undefined,
           categories: extractCategories(frontmatter.categories),
@@ -56,7 +64,14 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
     const category = url.searchParams.get('category');
     const tag = url.searchParams.get('tag');
     const status = url.searchParams.get('status');
-    if (search) filtered = filtered.filter((post) => post.title.toLowerCase().includes(search) || post.id.toLowerCase().includes(search));
+    if (search) {
+      filtered = filtered.filter((post) => {
+        const searchable = [post.title, post.id, post.slug, post.description || '', ...post.categories, ...post.tags]
+          .join(' ')
+          .toLowerCase();
+        return searchable.includes(search);
+      });
+    }
     if (category) filtered = filtered.filter((post) => post.categories.includes(category));
     if (tag) filtered = filtered.filter((post) => post.tags.includes(tag));
     if (status === 'draft') filtered = filtered.filter((post) => post.draft);
@@ -64,7 +79,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
     const sort = url.searchParams.get('sort') || 'date';
     const order = url.searchParams.get('order') || 'desc';
-    filtered.sort((a: any, b: any) => String(a[sort] || '').localeCompare(String(b[sort] || '')) * (order === 'asc' ? 1 : -1));
+    filtered.sort((a, b) => getSortableValue(a, sort).localeCompare(getSortableValue(b, sort)) * (order === 'asc' ? 1 : -1));
 
     const allCategories = [...new Set(posts.flatMap((post) => post.categories))].sort();
     const allTags = [...new Set(posts.flatMap((post) => post.tags))].sort();

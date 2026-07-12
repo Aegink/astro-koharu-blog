@@ -8,6 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { format } from 'date-fns';
 import type { Context } from 'hono';
+import yaml from 'js-yaml';
 import { z } from 'zod';
 import { getCategoryMap } from '@/lib/category';
 import { addCategoryMappings } from '@/lib/config';
@@ -63,42 +64,20 @@ function generateFilePath(title: string, categories?: string[], customMappings?:
 function generateFrontmatter(params: CreatePostParams): string {
   const now = new Date();
   const dateStr = format(now, 'yyyy-MM-dd HH:mm:ss');
-
-  const lines: string[] = ['---'];
-
-  // Title
-  lines.push(`title: ${params.title}`);
-
-  // Date
-  lines.push(`date: ${dateStr}`);
-
-  // Updated
-  lines.push(`updated: ${dateStr}`);
-
-  // Categories (as nested array format)
-  if (params.categories && params.categories.length > 0) {
-    lines.push('categories:');
-    lines.push(`  - [${params.categories.join(', ')}]`);
-  }
-
-  // Tags
-  if (params.tags && params.tags.length > 0) {
-    lines.push(`tags: [${params.tags.join(', ')}]`);
-  }
-
-  // Draft
-  if (params.draft !== false) {
-    lines.push('draft: true');
-  }
-
-  // Catalog enabled by default
-  lines.push('catalog: true');
-
-  lines.push('---');
-  lines.push('');
-  lines.push('');
-
-  return lines.join('\n');
+  const frontmatter: Record<string, unknown> = {
+    title: params.title,
+    date: dateStr,
+    updated: dateStr,
+    categories: params.categories?.length ? [params.categories] : undefined,
+    tags: params.tags?.length ? params.tags : undefined,
+    draft: params.draft !== false ? true : undefined,
+    catalog: true,
+  };
+  const clean = Object.fromEntries(Object.entries(frontmatter).filter(([, value]) => value !== undefined));
+  const yamlText = yaml
+    .dump(clean, { flowLevel: 2, lineWidth: -1, quotingType: "'", forceQuotes: false })
+    .replace(/^(date|updated): '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'$/gm, '$1: $2');
+  return `---\n${yamlText}---\n\n`;
 }
 
 /**

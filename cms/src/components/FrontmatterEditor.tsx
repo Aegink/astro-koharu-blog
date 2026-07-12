@@ -10,15 +10,16 @@ import { Icon } from '@iconify/react';
 import { format, isValid, parse } from 'date-fns';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { uploadImage } from '@/lib/api';
 import { type FrontmatterFormData, frontmatterSchema } from '@/lib/schemas';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { BlogSchema } from '@/types';
 
 export interface FrontmatterEditorRef {
   getFormData: () => FrontmatterFormData;
   isDirty: () => boolean;
+  validate: () => Promise<boolean>;
 }
 
 interface FrontmatterEditorProps {
@@ -93,12 +94,37 @@ function stringToTags(str: string): string[] | undefined {
     .filter(Boolean);
 }
 
+function keywordsToString(keywords?: string[]): string {
+  if (!keywords || keywords.length === 0) return '';
+  return keywords.join(', ');
+}
+
+function stringToKeywords(str: string): string[] | undefined {
+  if (!str.trim()) return undefined;
+  return str
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function setOptionalString(target: BlogSchema, key: keyof BlogSchema, value?: string) {
+  const record = target as unknown as Record<string, unknown>;
+  const trimmed = value?.trim();
+  if (trimmed) {
+    record[key] = trimmed;
+  } else {
+    delete record[key];
+  }
+}
+
 /**
  * Converts form data back to BlogSchema format
  */
-function formDataToFrontmatter(data: FrontmatterFormData): BlogSchema {
+function formDataToFrontmatter(data: FrontmatterFormData, baseFrontmatter: BlogSchema): BlogSchema {
   const result: BlogSchema = {
+    ...baseFrontmatter,
     title: data.title,
+    catalog: data.catalog,
     draft: data.draft,
     sticky: data.sticky,
     tocNumbering: data.tocNumbering,
@@ -110,9 +136,13 @@ function formDataToFrontmatter(data: FrontmatterFormData): BlogSchema {
   // Parse dates
   if (data.date) {
     result.date = parseDate(data.date);
+  } else {
+    delete result.date;
   }
   if (data.updated) {
     result.updated = parseDate(data.updated);
+  } else {
+    delete result.updated;
   }
 
   // Parse categories
@@ -120,19 +150,30 @@ function formDataToFrontmatter(data: FrontmatterFormData): BlogSchema {
   if (categories && categories.length > 0) {
     // Store as nested array for proper YAML format
     result.categories = [categories];
+  } else {
+    delete result.categories;
   }
 
   // Parse tags
   const tags = stringToTags(data.tags || '');
   if (tags) {
     result.tags = tags;
+  } else {
+    delete result.tags;
   }
 
-  // Optional string fields
-  if (data.description?.trim()) result.description = data.description.trim();
-  if (data.cover?.trim()) result.cover = data.cover.trim();
-  if (data.link?.trim()) result.link = data.link.trim();
-  if (data.subtitle?.trim()) result.subtitle = data.subtitle.trim();
+  const keywords = stringToKeywords(data.keywords || '');
+  if (keywords) {
+    result.keywords = keywords;
+  } else {
+    delete result.keywords;
+  }
+
+  setOptionalString(result, 'description', data.description);
+  setOptionalString(result, 'cover', data.cover);
+  setOptionalString(result, 'link', data.link);
+  setOptionalString(result, 'subtitle', data.subtitle);
+  setOptionalString(result, 'password', data.password);
 
   return result;
 }
@@ -259,12 +300,15 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
       cover: frontmatter.cover || '',
       link: frontmatter.link || '',
       subtitle: frontmatter.subtitle || '',
+      catalog: frontmatter.catalog ?? true,
       draft: frontmatter.draft ?? true,
       sticky: frontmatter.sticky ?? false,
       tocNumbering: frontmatter.tocNumbering ?? true,
       excludeFromSummary: frontmatter.excludeFromSummary ?? false,
       math: frontmatter.math ?? false,
       quiz: frontmatter.quiz ?? false,
+      password: frontmatter.password || '',
+      keywords: keywordsToString(frontmatter.keywords),
     },
   });
 
@@ -279,6 +323,7 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
   useImperativeHandle(ref, () => ({
     getFormData: () => form.getValues(),
     isDirty: () => isDirty,
+    validate: () => form.trigger(),
   }));
 
   const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,7 +345,7 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
   // Watch for changes and notify parent
   useEffect(() => {
     const subscription = watch((values) => {
-      const fm = formDataToFrontmatter(values as FrontmatterFormData);
+      const fm = formDataToFrontmatter(values as FrontmatterFormData, frontmatter);
       onChange(fm);
 
       // Notify about categories change for new category detection
@@ -310,7 +355,7 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, onChange, onCategoriesChange]);
+  }, [watch, onChange, onCategoriesChange, frontmatter]);
 
   return (
     <div className="space-y-4 p-4">
@@ -354,7 +399,13 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
           {...register('categories')}
         />
 
-        <FormField label="标签" id="tags" placeholder="标签1, 标签2, 标签3" error={errors.tags?.message} {...register('tags')} />
+        <FormField
+          label="标签"
+          id="tags"
+          placeholder="标签1, 标签2, 标签3"
+          error={errors.tags?.message}
+          {...register('tags')}
+        />
 
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
@@ -413,17 +464,37 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
             {...register('subtitle')}
           />
 
+          <FormTextarea
+            label="文章关键词"
+            id="keywords"
+            placeholder="关键词1, 关键词2，或每行一个关键词"
+            rows={2}
+            error={errors.keywords?.message}
+            {...register('keywords')}
+          />
+
+          <FormField
+            label="整篇文章加密密码"
+            id="password"
+            type="password"
+            placeholder="留空表示不加密"
+            error={errors.password?.message}
+            {...register('password')}
+          />
+
           <div className="space-y-2">
             <FormCheckbox label="草稿" id="draft" description="开启后不会在前台公开显示" {...register('draft')} />
 
             <FormCheckbox label="置顶" id="sticky" description="在文章列表中置顶显示" {...register('sticky')} />
 
             <FormCheckbox
-              label="目录编号"
-              id="tocNumbering"
-              description="给标题目录自动编号"
-              {...register('tocNumbering')}
+              label="加入分类目录"
+              id="catalog"
+              description="关闭后不参与分类页统计与分类目录展示"
+              {...register('catalog')}
             />
+
+            <FormCheckbox label="目录编号" id="tocNumbering" description="给标题目录自动编号" {...register('tocNumbering')} />
 
             <FormCheckbox
               label="不生成 AI 摘要"

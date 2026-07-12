@@ -43,12 +43,15 @@ export interface BlogSchema {
   cover?: string;
   link?: string;
   subtitle?: string;
+  catalog?: boolean;
   draft?: boolean;
   sticky?: boolean;
   tocNumbering?: boolean;
   excludeFromSummary?: boolean;
   math?: boolean;
   quiz?: boolean;
+  password?: string;
+  keywords?: string[];
 }
 
 /**
@@ -66,6 +69,7 @@ export interface PostListItem {
   id: string;
   slug: string;
   title: string;
+  description?: string;
   date: string;
   updated?: string;
   categories: string[];

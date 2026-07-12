@@ -284,6 +284,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
   useEffect(() => {
     if (!hasUnsavedChanges || isSaving || !initialContentLoaded.current || !initialFrontmatterLoaded.current) return;
     if (editorMode === 'rich' && !editor) return;
+    if (editorMode === 'rich') void editorRevision;
 
     setAutoSaveStatus('saving');
     const timer = window.setTimeout(async () => {
@@ -405,6 +406,13 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
 
   // 保存 post with new category detection
   const handleSave = useCallback(async () => {
+    const isFrontmatterValid = await frontmatterRef.current?.validate();
+    if (isFrontmatterValid === false) {
+      setSidebarTab('frontmatter');
+      toast.error('文章属性存在错误，请先修正');
+      return;
+    }
+
     // Check for new categories
     const newCats = detectNewCategories(currentCategories);
     if (Object.keys(newCats).length > 0) {
@@ -589,7 +597,11 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
           {hasUnsavedChanges && <span className="rounded bg-orange-500/10 px-2 py-0.5 text-orange-500 text-xs">未保存</span>}
           {autoSaveStatus !== 'idle' && (
             <span className="rounded bg-sky-500/10 px-2 py-0.5 text-sky-300 text-xs">
-              {autoSaveStatus === 'saving' ? '正在自动保存...' : autoSaveStatus === 'restored' ? '已恢复本地草稿' : `已自动保存 ${formatAutoSaveTime(autoSaveTime)}`}
+              {autoSaveStatus === 'saving'
+                ? '正在自动保存...'
+                : autoSaveStatus === 'restored'
+                  ? '已恢复本地草稿'
+                  : `已自动保存 ${formatAutoSaveTime(autoSaveTime)}`}
             </span>
           )}
         </div>
@@ -601,7 +613,9 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
               onClick={() => handleEditorModeChange('markdown')}
               className={cn(
                 'rounded-md px-3 py-1.5 font-medium text-sm transition-colors',
-                editorMode === 'markdown' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                editorMode === 'markdown'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               Markdown 源码
@@ -611,14 +625,15 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
               onClick={() => handleEditorModeChange('rich')}
               className={cn(
                 'rounded-md px-3 py-1.5 font-medium text-sm transition-colors',
-                editorMode === 'rich' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                editorMode === 'rich'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               富文本辅助
             </button>
           </div>
-
-          {/* 预览 link */}          {/* 预览 link */}
+          {/* 预览 link */} {/* 预览 link */}
           <a
             href={getPreviewUrl()}
             target="_blank"
@@ -628,7 +643,6 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
             <Icon icon="ri:external-link-line" className="size-4" />
             预览
           </a>
-
           {/* Toggle sidebar */}
           <button
             type="button"
@@ -641,7 +655,6 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
           >
             <Icon icon="ri:sidebar-unfold-line" className="size-5" />
           </button>
-
           {/* 保存 button */}
           <Button onClick={handleSave} disabled={isSaving || !hasUnsavedChanges}>
             {isSaving ? (
@@ -680,7 +693,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
                   value={markdownContent}
                   onChange={handleMarkdownChange}
                   spellCheck={false}
-                  className="min-h-[calc(100vh-13rem)] w-full resize-none rounded-xl border border-border bg-card px-5 py-4 font-mono text-sm leading-7 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="min-h-[calc(100vh-13rem)] w-full resize-none rounded-xl border border-border bg-card px-5 py-4 font-mono text-foreground text-sm leading-7 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="在这里编写 Markdown 正文..."
                 />
               </>

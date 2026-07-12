@@ -35,6 +35,12 @@ function SortableHeader({ label, field, sortField, sortOrder, onSort }: Sortable
   );
 }
 
+function formatPostDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return format(date, 'yyyy-MM-dd');
+}
+
 interface PostTableProps {
   posts: PostListItem[];
   sortField: SortField;
@@ -95,13 +101,16 @@ export function PostTable({
             {posts.map((post) => (
               <tr key={post.id} className="transition-colors hover:bg-muted/30">
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {post.sticky && (
-                      <span title="置顶文章">
-                        <Icon icon="ri:pushpin-fill" className="size-4 shrink-0 text-orange-500" />
-                      </span>
-                    )}
-                    <span className="line-clamp-1 font-medium text-sm">{post.title}</span>
+                  <div className="min-w-56 space-y-1">
+                    <div className="flex items-center gap-2">
+                      {post.sticky && (
+                        <span title="置顶文章">
+                          <Icon icon="ri:pushpin-fill" className="size-4 shrink-0 text-orange-500" />
+                        </span>
+                      )}
+                      <span className="line-clamp-1 font-medium text-sm">{post.title}</span>
+                    </div>
+                    <p className="line-clamp-1 text-muted-foreground text-xs">{post.description || post.id}</p>
                   </div>
                 </td>
                 <td className="hidden px-4 py-3 md:table-cell">
@@ -123,7 +132,7 @@ export function PostTable({
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-muted-foreground text-sm">{format(new Date(post.date), 'yyyy-MM-dd')}</span>
+                  <span className="text-muted-foreground text-sm">{formatPostDate(post.date)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span
