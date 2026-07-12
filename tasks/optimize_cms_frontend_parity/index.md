@@ -3,7 +3,7 @@
 > **类型**：optimize
 > **优先级**：P1
 > **负责人**：AreaSongWcc
-> **状态**：🟡 进行中
+> **状态**：✅ 已完成
 > **开始时间**：2026-07-12
 > **预计完成**：2026-07-12
 
@@ -14,8 +14,8 @@
 
 | 维度 | 状态 | 详情 |
 |------|------|------|
-| 整体进度 | 🟡 85% | 本地类型检查、静态检查、生产构建与 Functions 编译已通过 |
-| 当前阶段 | E 执行 | 准备提交并部署上线 |
+| 整体进度 | ✅ 100% | 已提交、部署并完成线上 HTTP 验证 |
+| 当前阶段 | R2 验收 | 本地与线上验证完成 |
 | 当前文档 | [index.md](./index.md) | 极简任务记录 |
 
 | 阶段 | 状态 | 文档链接 |
@@ -23,8 +23,8 @@
 | R1 调研 | ✅ | 本文档 |
 | I 设计 | ✅ | 本文档 |
 | P 规划 | ✅ | 本文档 |
-| E 执行 | 🟡 | 本文档 |
-| R2 验收 | 🔵 | - |
+| E 执行 | ✅ | 本文档 |
+| R2 验收 | ✅ | 本文档 |
 
 ## 📋 子任务概览
 
@@ -35,7 +35,12 @@
 | 2.1 | 补齐后台缺失能力 | ✅ | P0 | 本文档 |
 | 2.2 | 前后端质量优化 | ✅ | P1 | 本文档 |
 | 3.1 | 本地验证与构建 | ✅ | P0 | 本文档 |
-| 3.2 | 部署上线与线上确认 | 🟡 | P0 | 本文档 |
+| 3.2 | 部署上线与线上确认 | ✅ | P0 | 本文档 |
+
+## ✅ 验收结果
+- 本地验证通过：`corepack pnpm --dir cms exec tsc --noEmit`、`corepack pnpm check`、定向 `biome check`、`corepack pnpm build`、`npx wrangler pages functions build functions --outdir .wrangler-pages-functions --build-output-directory dist`。
+- 线上部署通过：GitHub Actions `Deploy to Cloudflare Pages` run `29184507302` 成功，部署提交 `e71106daca03986413413baa64fb1d6ffa29a0f9`。
+- 线上 HTTP 验证通过：`https://wangyouboke.com/`、`https://wangyouboke.com/admin/`、`https://wangyouboke.com/post/note/yue-du/post-1782929922679/` 均返回 200。
 
 ## 📝 关键决策
 - 本次只提交功能代码与任务文档，排除历史遗留的 `.cache/og-data.json` 与 `.wrangler-pages-functions/`。
@@ -51,6 +56,8 @@
 
 | 时间 | 操作 | 说明 |
 |------|------|------|
+| 07-12 15:42 | ✅ 完成 #3.2 | GitHub Actions 部署成功，首页、后台与真实文章页线上 HTTP 验证通过 |
+| 07-12 15:42 | ✅ R2 验收完成 | 任务完成度 100%，无 P0/P1 阻塞 |
 | 07-12 15:28 | ✅ 完成 #3.1 | `tsc`、`astro check`、定向 `biome check`、生产构建与 Pages Functions 编译均通过 |
 | 07-12 15:28 | 🟡 开始 #3.2 | 准备提交并推送触发线上部署 |
 | 07-12 15:12 | ✅ 完成 #2.2 | 修复列表搜索与日期展示健壮性，统一本地新建文章 YAML 序列化 |
