@@ -59,7 +59,21 @@ jobs:
           page_url="https://wangyouboke.com/post/astro-koharu-guide/"
           # 拆分字面量，避免本地残留扫描误报；Bash 会在运行时拼接。
           stale_pattern='cos''Zone|cosine''\.ren|blog''\.cosine''\.ren|r2''\.cosine''\.ren|t\.me/cos''ine|5980''22684|yusi''xian|余''弦の博客|余''弦'
-          html="$(curl -fsSL -H 'Cache-Control: no-cache' "$page_url")"
+          html=""
+
+          for attempt in {1..12}; do
+            if html="$(curl -fsSL -H 'Cache-Control: no-cache' "$page_url")"; then
+              break
+            fi
+
+            if [ "$attempt" -eq 12 ]; then
+              echo "线上页面连续 12 次无法获取：$page_url"
+              exit 1
+            fi
+
+            echo "线上页面暂不可用，10 秒后重试：$attempt/12"
+            sleep 10
+          done
 
           if printf '%s' "$html" | grep -Eiq "$stale_pattern"; then
             echo "线上页面仍命中旧品牌缓存：$page_url"
