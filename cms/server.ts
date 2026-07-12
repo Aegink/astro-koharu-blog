@@ -17,12 +17,17 @@ import { createServer as createViteServer } from 'vite';
 
 import {
   createHandler,
+  deployStatusHandler,
   listHandler,
+  mediaHandler,
   ogCacheHandler,
   ogDataHandler,
   readHandler,
+  siteConfigHandler,
+  taxonomyHandler,
   toggleDraftHandler,
   toggleStickyHandler,
+  uploadImageHandler,
   writeHandler,
 } from './src/api';
 import { setCategoryMap } from './src/lib/category';
@@ -99,6 +104,11 @@ async function main() {
   app.post('/api/cms/toggle-sticky', toggleStickyHandler);
   app.get('/api/cms/og-data', ogDataHandler);
   app.get('/api/cms/og-cache', ogCacheHandler);
+  app.on(['GET', 'DELETE'], '/api/cms/media', mediaHandler);
+  app.post('/api/cms/upload-image', uploadImageHandler);
+  app.post('/api/cms/taxonomy', taxonomyHandler);
+  app.on(['GET', 'POST'], '/api/cms/site-config', siteConfigHandler);
+  app.get('/api/cms/deploy-status', deployStatusHandler);
 
   // Config endpoint - returns project configuration for client use
   app.get('/api/cms/config', (c) => {

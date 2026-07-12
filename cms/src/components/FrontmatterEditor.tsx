@@ -20,6 +20,7 @@ export interface FrontmatterEditorRef {
   getFormData: () => FrontmatterFormData;
   isDirty: () => boolean;
   validate: () => Promise<boolean>;
+  applyPatch: (patch: Partial<BlogSchema>) => void;
 }
 
 interface FrontmatterEditorProps {
@@ -178,6 +179,29 @@ function formDataToFrontmatter(data: FrontmatterFormData, baseFrontmatter: BlogS
   return result;
 }
 
+function frontmatterPatchToFormData(patch: Partial<BlogSchema>): Partial<FrontmatterFormData> {
+  return {
+    title: patch.title,
+    date: patch.date ? formatDate(patch.date) : undefined,
+    updated: patch.updated ? formatDate(patch.updated) : undefined,
+    description: patch.description,
+    categories: patch.categories ? categoriesToString(patch.categories) : undefined,
+    tags: patch.tags ? tagsToString(patch.tags) : undefined,
+    cover: patch.cover,
+    link: patch.link,
+    subtitle: patch.subtitle,
+    catalog: patch.catalog,
+    draft: patch.draft,
+    sticky: patch.sticky,
+    tocNumbering: patch.tocNumbering,
+    excludeFromSummary: patch.excludeFromSummary,
+    math: patch.math,
+    quiz: patch.quiz,
+    password: patch.password,
+    keywords: patch.keywords ? keywordsToString(patch.keywords) : undefined,
+  };
+}
+
 /**
  * Input field component
  */
@@ -324,6 +348,14 @@ export const FrontmatterEditor = forwardRef<FrontmatterEditorRef, FrontmatterEdi
     getFormData: () => form.getValues(),
     isDirty: () => isDirty,
     validate: () => form.trigger(),
+    applyPatch: (patch) => {
+      const formPatch = frontmatterPatchToFormData(patch);
+      for (const [key, value] of Object.entries(formPatch)) {
+        if (value !== undefined) {
+          form.setValue(key as keyof FrontmatterFormData, value as never, { shouldDirty: true, shouldValidate: true });
+        }
+      }
+    },
   }));
 
   const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

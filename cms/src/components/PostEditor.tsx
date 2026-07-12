@@ -17,6 +17,7 @@ import { CategoryMappingDialog } from '@/components/CategoryMappingDialog';
 import { EditorTOC } from '@/components/EditorTOC';
 import { FrontmatterEditor, type FrontmatterEditorRef } from '@/components/FrontmatterEditor';
 import { MarkdownPreview } from '@/components/MarkdownPreview';
+import { type MarkdownSnippet, MarkdownSnippetPanel } from '@/components/MarkdownSnippetPanel';
 import { Button } from '@/components/ui/button';
 import { type EditorHeading, useEditorHeadings } from '@/hooks';
 import { readPost, writePost } from '@/lib/api';
@@ -325,6 +326,38 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
       setHasUnsavedChanges(true);
     }
   }, []);
+
+  const handleSnippetInsert = useCallback(
+    (snippet: MarkdownSnippet) => {
+      const textarea = markdownTextareaRef.current;
+      const start = textarea?.selectionStart ?? markdownContent.length;
+      const end = textarea?.selectionEnd ?? markdownContent.length;
+      const before = markdownContent.slice(0, start);
+      const after = markdownContent.slice(end);
+      const beforeBreak = before && !before.endsWith('\n\n') ? (before.endsWith('\n') ? '\n' : '\n\n') : '';
+      const afterBreak = after && !after.startsWith('\n') ? '\n\n' : '';
+      const insertion = `${beforeBreak}${snippet.template}${afterBreak}`;
+      const nextContent = `${before}${insertion}${after}`;
+      const cursorPosition = before.length + beforeBreak.length + snippet.template.length;
+
+      setMarkdownContent(nextContent);
+      setPreviewContent(nextContent);
+      setHasUnsavedChanges(true);
+
+      const patch = snippet.frontmatterPatch;
+      if (patch) {
+        setFrontmatter((current) => ({ ...current, ...patch }));
+        frontmatterRef.current?.applyPatch(patch);
+      }
+
+      requestAnimationFrame(() => {
+        markdownTextareaRef.current?.focus();
+        markdownTextareaRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+      });
+      toast.success(`已插入：${snippet.label}`);
+    },
+    [markdownContent],
+  );
 
   const handleEditorModeChange = useCallback(
     async (nextMode: EditorMode) => {
@@ -688,6 +721,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
                     </p>
                   </div>
                 </div>
+                <MarkdownSnippetPanel onInsert={handleSnippetInsert} />
                 <textarea
                   ref={markdownTextareaRef}
                   value={markdownContent}

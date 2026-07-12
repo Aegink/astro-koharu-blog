@@ -10,6 +10,12 @@ export const CONTENT_DIR = 'src/content/blog';
 /** Config file path relative to project root */
 export const CONFIG_PATH = 'config/site.yaml';
 
+/** Public image root relative to project root */
+export const MEDIA_ROOT_DIR = 'public/img';
+
+/** CMS uploaded image directory relative to project root */
+export const MEDIA_DIR = 'public/img/cms';
+
 /** Number of recent posts to show in dashboard overview */
 export const RECENT_POSTS_COUNT = 10;
 

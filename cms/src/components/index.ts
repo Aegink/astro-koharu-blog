@@ -14,6 +14,7 @@ export { EmbedHydrator } from './EmbedHydrator';
 export { ErrorFallback } from './ErrorFallback';
 export { FrontmatterEditor, type FrontmatterEditorRef } from './FrontmatterEditor';
 export { MarkdownPreview } from './MarkdownPreview';
+export { type MarkdownSnippet, MarkdownSnippetPanel } from './MarkdownSnippetPanel';
 export { MediaLibrary } from './MediaLibrary';
 export { PostEditor } from './PostEditor';
 export { PostTable } from './PostTable';
