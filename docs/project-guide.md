@@ -307,6 +307,16 @@ Aegink/astro-koharu-blog
 
 不要把这些值写进代码或文档。
 
+GitHub Actions 部署还需要这些 Secrets：
+
+| Secret | 作用 |
+|------|------|
+| `CLOUDFLARE_API_TOKEN` | `wrangler pages deploy` 和部署后清理 Cloudflare 缓存需要 |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Pages 部署需要 |
+| `CLOUDFLARE_ZONE_ID` | 可选；不填时脚本会用 `CLOUDFLARE_ZONE_NAME=wangyouboke.com` 查询 Zone |
+
+`CLOUDFLARE_API_TOKEN` 至少需要 Pages 部署权限；如果要自动清理旧 HTML 缓存，还需要 Cloudflare 缓存清理权限。未配置 `CLOUDFLARE_ZONE_ID` 时，还需要 Zone 读取权限用于查询 Zone。
+
 ## 15. 常见问题
 
 ### 后台保存了文章，前台没变
@@ -324,6 +334,10 @@ Aegink/astro-koharu-blog
 ### 本地能看，线上看不到
 
 大概率是没有提交推送到 GitHub，或者 Cloudflare Pages 构建失败。
+
+### 线上还是旧页面
+
+如果裸 URL 仍显示旧 HTML，但加查询参数的新 URL 正常，通常是 Cloudflare 旧缓存对象未清理。重新运行 GitHub Actions 部署，或在具备 Cloudflare Token 的环境执行 `node scripts/purge-cloudflare-cache.mjs`。
 
 ### 不知道该改哪个文件
 
