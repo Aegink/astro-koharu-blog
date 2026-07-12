@@ -21,6 +21,7 @@ pnpm-debug.log*
 
 # vercel
 .vercel
+.wrangler-pages-functions/
 .superset
 
 # macOS-specific files
