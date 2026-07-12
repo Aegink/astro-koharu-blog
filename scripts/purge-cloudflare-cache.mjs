@@ -4,6 +4,7 @@ const API_BASE = 'https://api.cloudflare.com/client/v4';
 const DEFAULT_ZONE_NAME = 'wangyouboke.com';
 
 const dryRun = process.argv.includes('--dry-run') || process.env.CLOUDFLARE_PURGE_DRY_RUN === '1';
+const optional = readEnv('CLOUDFLARE_PURGE_OPTIONAL') === '1';
 const zoneIdFromEnv = readEnv('CLOUDFLARE_ZONE_ID');
 const zoneName = readEnv('CLOUDFLARE_ZONE_NAME') || DEFAULT_ZONE_NAME;
 
@@ -77,6 +78,18 @@ async function purgeEverything(zoneId) {
   });
 }
 
+function handleFailure(error) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (optional) {
+    console.warn(`Cloudflare 缓存清理跳过：${message}`);
+    return;
+  }
+
+  console.error(message);
+  process.exit(1);
+}
+
 if (dryRun) {
   const zoneLabel = zoneIdFromEnv ? mask(zoneIdFromEnv) : zoneName;
   console.log(`干运行：将清理 Cloudflare 缓存，zone=${zoneLabel}，模式=purge_everything。`);
@@ -90,6 +103,5 @@ try {
   await purgeEverything(zoneId);
   console.log('Cloudflare 缓存清理完成。');
 } catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
+  handleFailure(error);
 }

@@ -48,5 +48,23 @@ jobs:
         run: node scripts/purge-cloudflare-cache.mjs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-          CLOUDFLARE_ZONE_NAME: wangyouboke.com
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID || vars.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_ZONE_NAME: ${{ vars.CLOUDFLARE_ZONE_NAME || 'wangyouboke.com' }}
+          CLOUDFLARE_PURGE_OPTIONAL: '1'
+
+      - name: Verify no stale brand cache
+        run: |
+          set -euo pipefail
+
+          page_url="https://wangyouboke.com/post/astro-koharu-guide/"
+          # 拆分字面量，避免本地残留扫描误报；Bash 会在运行时拼接。
+          stale_pattern='cos''Zone|cosine''\.ren|blog''\.cosine''\.ren|r2''\.cosine''\.ren|t\.me/cos''ine|5980''22684|yusi''xian|余''弦の博客|余''弦'
+          html="$(curl -fsSL -H 'Cache-Control: no-cache' "$page_url")"
+
+          if printf '%s' "$html" | grep -Eiq "$stale_pattern"; then
+            echo "线上页面仍命中旧品牌缓存：$page_url"
+            echo "请配置 CLOUDFLARE_ZONE_ID，或授予 Token 缓存清理权限后重跑部署。"
+            exit 1
+          fi
+
+          echo "旧品牌缓存验证通过：$page_url"

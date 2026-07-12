@@ -313,9 +313,9 @@ GitHub Actions 部署还需要这些 Secrets：
 |------|------|
 | `CLOUDFLARE_API_TOKEN` | `wrangler pages deploy` 和部署后清理 Cloudflare 缓存需要 |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Pages 部署需要 |
-| `CLOUDFLARE_ZONE_ID` | 可选；不填时脚本会用 `CLOUDFLARE_ZONE_NAME=wangyouboke.com` 查询 Zone |
+| `CLOUDFLARE_ZONE_ID` | 推荐配置；不填时脚本会用 `CLOUDFLARE_ZONE_NAME=wangyouboke.com` 查询 Zone |
 
-`CLOUDFLARE_API_TOKEN` 至少需要 Pages 部署权限；如果要自动清理旧 HTML 缓存，还需要 Cloudflare 缓存清理权限。未配置 `CLOUDFLARE_ZONE_ID` 时，还需要 Zone 读取权限用于查询 Zone。
+`CLOUDFLARE_API_TOKEN` 至少需要 Pages 部署权限；如果要自动清理旧 HTML 缓存，还需要 Cloudflare 缓存清理权限。未配置 `CLOUDFLARE_ZONE_ID` 时，还需要 Zone 读取权限用于查询 Zone。若没有 Zone 权限，缓存清理步骤会跳过，但 Actions 会继续检查线上旧品牌缓存，发现旧内容时仍会失败。
 
 ## 15. 常见问题
 
