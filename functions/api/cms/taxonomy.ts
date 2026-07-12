@@ -1,16 +1,18 @@
+import yaml from 'js-yaml';
 import {
-  checkAuth,
+  CONFIG_PATH,
   CONTENT_DIR,
+  checkAuth,
+  commitTextFiles,
   dumpMatter,
   type Env,
-  getCategoryMap,
   json,
   listMarkdownFiles,
   parseMatter,
   readFile,
   replaceCategoryMap,
+  replaceCategoryMapContent,
   slugify,
-  writeFile,
 } from '../../_lib/online-cms';
 
 type SaveCategoryMapBody = {
@@ -43,7 +45,7 @@ function normalizeMap(value: Record<string, string>): Record<string, string> {
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const body = (await context.request.json()) as TaxonomyBody;
@@ -63,6 +65,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     const files = await listMarkdownFiles(context.env);
     const changedFiles: string[] = [];
 
+    const updates: Array<{ path: string; content: string }> = [];
     for (const postId of files) {
       const filePath = `${CONTENT_DIR}/${postId}`;
       const file = await readFile(context.env, filePath);
@@ -76,25 +79,23 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       }
 
       if (JSON.stringify(parsed.frontmatter) !== before) {
-        await writeFile(
-          context.env,
-          filePath,
-          dumpMatter(parsed.frontmatter, parsed.content),
-          `chore(cms): rename ${body.target} ${from} to ${to}`,
-          file.sha,
-        );
+        updates.push({ path: filePath, content: dumpMatter(parsed.frontmatter, parsed.content) });
         changedFiles.push(postId);
       }
     }
 
     if (body.target === 'category') {
-      const categoryMap = await getCategoryMap(context.env);
-      if (Object.prototype.hasOwnProperty.call(categoryMap, from)) {
+      const config = await readFile(context.env, CONFIG_PATH);
+      const parsedConfig = (yaml.load(config.content) || {}) as { categoryMap?: Record<string, string> };
+      const categoryMap = { ...(parsedConfig.categoryMap || {}) };
+      if (Object.hasOwn(categoryMap, from)) {
         categoryMap[to] = categoryMap[from] || slugify(to);
         delete categoryMap[from];
-        await replaceCategoryMap(context.env, categoryMap);
+        updates.push({ path: CONFIG_PATH, content: replaceCategoryMapContent(config.content, categoryMap) });
       }
     }
+
+    await commitTextFiles(context.env, updates, `chore(cms): rename ${body.target} ${from} to ${to}`);
 
     return json({ success: true, changed: changedFiles.length, files: changedFiles });
   } catch (error) {

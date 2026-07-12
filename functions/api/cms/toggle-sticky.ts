@@ -1,8 +1,18 @@
-import { checkAuth, CONTENT_DIR, dumpMatter, type Env, isSafeMarkdownPath, json, parseMatter, readFile, writeFile } from '../../_lib/online-cms';
+import {
+  CONTENT_DIR,
+  checkAuth,
+  dumpMatter,
+  type Env,
+  isSafeMarkdownPath,
+  json,
+  parseMatter,
+  readFile,
+  writeFile,
+} from '../../_lib/online-cms';
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const { postId } = (await context.request.json()) as { postId: string };

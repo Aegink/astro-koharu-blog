@@ -12,7 +12,7 @@ import yaml from 'js-yaml';
 import { z } from 'zod';
 import { getCategoryMap } from '@/lib/category';
 import { addCategoryMappings } from '@/lib/config';
-import { CONTENT_DIR } from '@/lib/paths';
+import { CONFIG_PATH, CONTENT_DIR } from '@/lib/paths';
 import { generateSlug } from '@/lib/slug';
 import { isPathSafe } from '@/lib/validation';
 import type { CreatePostResponse } from '@/types';
@@ -133,14 +133,20 @@ export async function createHandler(c: Context) {
     const dirPath = path.dirname(filePath);
     await fs.mkdir(dirPath, { recursive: true });
 
-    // Add new category mappings if provided
-    if (customMappings && Object.keys(customMappings).length > 0) {
-      await addCategoryMappings(projectRoot, customMappings);
-    }
-
-    // Generate frontmatter and write file
     const content = generateFrontmatter({ title, categories, tags, draft });
-    await fs.writeFile(filePath, content, 'utf-8');
+    const configPath = path.join(projectRoot, CONFIG_PATH);
+    const configBackup =
+      customMappings && Object.keys(customMappings).length > 0 ? await fs.readFile(configPath, 'utf-8') : null;
+    try {
+      if (customMappings && Object.keys(customMappings).length > 0) {
+        await addCategoryMappings(projectRoot, customMappings);
+      }
+      await fs.writeFile(filePath, content, 'utf-8');
+    } catch (error) {
+      await fs.unlink(filePath).catch(() => undefined);
+      if (configBackup !== null) await fs.writeFile(configPath, configBackup, 'utf-8').catch(() => undefined);
+      throw error;
+    }
 
     const response: CreatePostResponse = {
       success: true,

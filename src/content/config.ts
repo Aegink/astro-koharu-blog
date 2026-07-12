@@ -42,6 +42,8 @@ const blogCollection = defineCollection({
       .optional(),
     sticky: z.boolean().optional(),
     draft: z.boolean().optional(),
+    deletedAt: z.string().optional(),
+    deletedDraft: z.boolean().optional(),
     // 目录编号控制
     tocNumbering: z.boolean().optional().default(true),
     // 排除 AI 摘要生成

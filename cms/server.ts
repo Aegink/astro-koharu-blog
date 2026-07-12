@@ -16,12 +16,15 @@ import yaml from 'js-yaml';
 import { createServer as createViteServer } from 'vite';
 
 import {
+  bulkHandler,
   createHandler,
   deployStatusHandler,
+  historyHandler,
   listHandler,
   mediaHandler,
   ogCacheHandler,
   ogDataHandler,
+  postStateHandler,
   readHandler,
   siteConfigHandler,
   taxonomyHandler,
@@ -41,6 +44,16 @@ type AppVariables = {
 // Load project configuration
 const CMS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(CMS_DIR, '..');
+const LOCAL_SESSION_TOKEN = crypto.randomUUID();
+
+function readCookie(request: Request, name: string): string {
+  const cookies = request.headers.get('cookie') || '';
+  for (const part of cookies.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return rest.join('=');
+  }
+  return '';
+}
 
 // Load site config for category map
 function loadSiteConfig() {
@@ -77,11 +90,17 @@ async function main() {
       return c.json({ error: 'CMS is only accessible from localhost' }, 403);
     }
 
+    if (c.req.path === '/api/cms/session') {
+      await next();
+      return;
+    }
+
     // Optional API key authentication
     if (CMS_API_KEY) {
       const authHeader = c.req.header('authorization');
       const providedKey = authHeader?.replace('Bearer ', '');
-      if (providedKey !== CMS_API_KEY) {
+      const session = readCookie(c.req.raw, 'koharu_cms_session');
+      if (providedKey !== CMS_API_KEY && session !== LOCAL_SESSION_TOKEN) {
         return c.json({ error: 'Invalid or missing API key' }, 401);
       }
     }
@@ -97,11 +116,14 @@ async function main() {
 
   // API routes
   app.get('/api/cms/list', listHandler);
+  app.post('/api/cms/bulk', bulkHandler);
   app.get('/api/cms/read', readHandler);
+  app.on(['GET', 'POST'], '/api/cms/history', historyHandler);
   app.post('/api/cms/write', writeHandler);
   app.post('/api/cms/create', createHandler);
   app.post('/api/cms/toggle-draft', toggleDraftHandler);
   app.post('/api/cms/toggle-sticky', toggleStickyHandler);
+  app.post('/api/cms/post-state', postStateHandler);
   app.get('/api/cms/og-data', ogDataHandler);
   app.get('/api/cms/og-cache', ogCacheHandler);
   app.on(['GET', 'DELETE'], '/api/cms/media', mediaHandler);
@@ -109,6 +131,23 @@ async function main() {
   app.post('/api/cms/taxonomy', taxonomyHandler);
   app.on(['GET', 'POST'], '/api/cms/site-config', siteConfigHandler);
   app.get('/api/cms/deploy-status', deployStatusHandler);
+  app.on(['GET', 'POST', 'DELETE'], '/api/cms/session', async (c) => {
+    if (c.req.method === 'GET') {
+      const authenticated = !CMS_API_KEY || readCookie(c.req.raw, 'koharu_cms_session') === LOCAL_SESSION_TOKEN;
+      return c.json({ authenticated }, authenticated ? 200 : 401);
+    }
+
+    if (c.req.method === 'DELETE') {
+      c.header('Set-Cookie', 'koharu_cms_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0');
+      return c.json({ success: true });
+    }
+
+    const body = (await c.req.json().catch(() => ({}))) as { password?: string };
+    if (CMS_API_KEY && body.password !== CMS_API_KEY) return c.json({ error: 'Invalid or missing API key' }, 401);
+    if (!CMS_API_KEY && !body.password?.trim()) return c.json({ error: 'Password is required' }, 400);
+    c.header('Set-Cookie', `koharu_cms_session=${LOCAL_SESSION_TOKEN}; HttpOnly; Path=/; SameSite=Strict`);
+    return c.json({ success: true });
+  });
 
   // Config endpoint - returns project configuration for client use
   app.get('/api/cms/config', (c) => {

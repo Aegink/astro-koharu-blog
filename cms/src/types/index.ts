@@ -45,6 +45,8 @@ export interface BlogSchema {
   subtitle?: string;
   catalog?: boolean;
   draft?: boolean;
+  deletedAt?: string;
+  deletedDraft?: boolean;
   sticky?: boolean;
   tocNumbering?: boolean;
   excludeFromSummary?: boolean;
@@ -60,6 +62,21 @@ export interface BlogSchema {
 export interface ReadPostResult {
   frontmatter: BlogSchema;
   content: string;
+  sha: string;
+}
+
+export interface WritePostResponse {
+  success: boolean;
+  sha: string;
+}
+
+export interface PostHistoryEntry {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+  url?: string;
 }
 
 /**
@@ -76,6 +93,7 @@ export interface PostListItem {
   tags: string[];
   draft: boolean;
   sticky: boolean;
+  deleted: boolean;
 }
 
 /**
@@ -85,6 +103,7 @@ export interface DashboardStats {
   total: number;
   published: number;
   draft: number;
+  trash: number;
   categoryStats: { name: string; count: number }[];
   tagStats: { name: string; count: number }[];
   recentPosts: PostListItem[];
@@ -99,6 +118,12 @@ export interface ListPostsResponse {
   stats: DashboardStats;
   categories: string[];
   tags: string[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 /**
@@ -107,10 +132,12 @@ export interface ListPostsResponse {
 export interface ListPostsParams {
   category?: string;
   tag?: string;
-  status?: 'all' | 'draft' | 'published';
+  status?: 'all' | 'draft' | 'published' | 'trash';
   search?: string;
   sort?: 'date' | 'title' | 'updated';
   order?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
 }
 
 /**

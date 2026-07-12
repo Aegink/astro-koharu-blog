@@ -4,6 +4,7 @@
  * Reads a blog post file and returns its frontmatter and content.
  */
 
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import matter from 'gray-matter';
@@ -54,7 +55,8 @@ export async function readHandler(c: Context) {
       },
     });
 
-    return c.json({ frontmatter, content });
+    const sha = createHash('sha256').update(fileContent).digest('hex');
+    return c.json({ frontmatter, content, sha });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return c.json({ error: 'File not found' }, 404);

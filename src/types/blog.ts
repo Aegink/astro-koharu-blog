@@ -17,6 +17,8 @@ export interface BlogSchema {
   categories?: string[] | string[][];
   sticky?: boolean;
   draft?: boolean;
+  deletedAt?: string;
+  deletedDraft?: boolean;
   tocNumbering?: boolean;
   /** Exclude this post from AI summary generation */
   excludeFromSummary?: boolean;

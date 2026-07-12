@@ -129,6 +129,7 @@ async function parsePostFile(filePath: string, contentDir: string): Promise<Post
       tags,
       draft: data.draft === true,
       sticky: data.sticky === true,
+      deleted: typeof data.deletedAt === 'string' && data.deletedAt.length > 0,
     };
   } catch (error) {
     console.error(`[CMS List API] Error parsing ${filePath}:`, error);
@@ -155,10 +156,12 @@ function filterPosts(
     filtered = filtered.filter((post) => post.tags.includes(tag));
   }
 
-  if (status === 'draft') {
-    filtered = filtered.filter((post) => post.draft);
-  } else if (status === 'published') {
-    filtered = filtered.filter((post) => !post.draft);
+  if (status === 'trash') {
+    filtered = filtered.filter((post) => post.deleted);
+  } else {
+    filtered = filtered.filter((post) => !post.deleted);
+    if (status === 'draft') filtered = filtered.filter((post) => post.draft);
+    if (status === 'published') filtered = filtered.filter((post) => !post.draft);
   }
 
   if (search) {
@@ -206,13 +209,14 @@ function sortPosts(posts: PostListItem[], sort: string, order: string): PostList
  * Calculates statistics from all posts
  */
 function calculateStats(posts: PostListItem[]): DashboardStats {
+  const activePosts = posts.filter((post) => !post.deleted);
   const categoryCount = new Map<string, number>();
   const tagCount = new Map<string, number>();
 
   let published = 0;
   let draft = 0;
 
-  for (const post of posts) {
+  for (const post of activePosts) {
     if (post.draft) {
       draft++;
     } else {
@@ -237,7 +241,7 @@ function calculateStats(posts: PostListItem[]): DashboardStats {
     .sort((a, b) => b.count - a.count);
 
   // Recent posts: sort by updated/date descending
-  const recentPosts = [...posts]
+  const recentPosts = [...activePosts]
     .sort((a, b) => {
       const dateA = new Date(a.updated || a.date).getTime();
       const dateB = new Date(b.updated || b.date).getTime();
@@ -246,9 +250,10 @@ function calculateStats(posts: PostListItem[]): DashboardStats {
     .slice(0, RECENT_POSTS_COUNT);
 
   return {
-    total: posts.length,
+    total: activePosts.length,
     published,
     draft,
+    trash: posts.length - activePosts.length,
     categoryStats,
     tagStats,
     recentPosts,
@@ -284,8 +289,9 @@ export async function listHandler(c: Context) {
     const stats = calculateStats(allPosts);
 
     // Get all unique categories and tags for filters
-    const allCategories = [...new Set(allPosts.flatMap((p) => p.categories))].sort();
-    const allTags = [...new Set(allPosts.flatMap((p) => p.tags))].sort();
+    const activePosts = allPosts.filter((post) => !post.deleted);
+    const allCategories = [...new Set(activePosts.flatMap((p) => p.categories))].sort();
+    const allTags = [...new Set(activePosts.flatMap((p) => p.tags))].sort();
 
     // Apply filters
     const filterParams = {
@@ -301,12 +307,19 @@ export async function listHandler(c: Context) {
     const order = c.req.query('order') || 'desc';
     filteredPosts = sortPosts(filteredPosts, sort, order);
 
+    const total = filteredPosts.length;
+    const pageSize = Math.min(100, Math.max(10, Number(c.req.query('pageSize')) || 20));
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(totalPages, Math.max(1, Number(c.req.query('page')) || 1));
+    const offset = (page - 1) * pageSize;
+
     const response: ListPostsResponse = {
-      posts: filteredPosts,
-      total: filteredPosts.length,
+      posts: filteredPosts.slice(offset, offset + pageSize),
+      total,
       stats,
       categories: allCategories,
       tags: allTags,
+      pagination: { page, pageSize, total, totalPages },
     };
 
     return c.json(response);

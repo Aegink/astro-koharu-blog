@@ -116,6 +116,7 @@ export async function taxonomyHandler(c: Context) {
     const contentRoot = path.join(projectRoot, CONTENT_DIR);
     const files = await listMarkdownFiles(contentRoot);
     const changedFiles: string[] = [];
+    const updates: Array<{ filePath: string; before: string; after: string }> = [];
 
     for (const postId of files) {
       const filePath = path.join(contentRoot, postId);
@@ -130,20 +131,40 @@ export async function taxonomyHandler(c: Context) {
       }
 
       if (JSON.stringify(parsed.data) !== before) {
-        await fs.writeFile(filePath, stringifyMatter(parsed.content, parsed.data), 'utf-8');
+        updates.push({ filePath, before: fileContent, after: stringifyMatter(parsed.content, parsed.data) });
         changedFiles.push(postId);
       }
     }
 
+    let configUpdate: { before: string; after: string } | null = null;
     if (body.target === 'category') {
+      const configContent = await fs.readFile(configPath, 'utf-8');
       const config = await readConfig(configPath);
       const categoryMap = normalizeMap((config.categoryMap as Record<string, string>) || {});
       if (Object.hasOwn(categoryMap, from)) {
         categoryMap[to] = categoryMap[from] || to.toLowerCase().replace(/\s+/g, '-');
         delete categoryMap[from];
         config.categoryMap = categoryMap;
-        await writeConfig(configPath, config);
+        configUpdate = {
+          before: configContent,
+          after: yaml.dump(config, { flowLevel: 2, lineWidth: -1, quotingType: "'", forceQuotes: false, sortKeys: false }),
+        };
       }
+    }
+
+    const written: Array<{ filePath: string; before: string }> = [];
+    try {
+      for (const update of updates) {
+        await fs.writeFile(update.filePath, update.after, 'utf-8');
+        written.push({ filePath: update.filePath, before: update.before });
+      }
+      if (configUpdate) {
+        await fs.writeFile(configPath, configUpdate.after, 'utf-8');
+        written.push({ filePath: configPath, before: configUpdate.before });
+      }
+    } catch (error) {
+      for (const item of written.reverse()) await fs.writeFile(item.filePath, item.before, 'utf-8').catch(() => undefined);
+      throw error;
     }
 
     return c.json({ success: true, changed: changedFiles.length, files: changedFiles });

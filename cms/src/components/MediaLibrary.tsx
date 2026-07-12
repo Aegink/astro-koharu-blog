@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { deleteMediaImage, listMediaImages, uploadImage } from '@/lib/api';
@@ -31,14 +31,16 @@ export function MediaLibrary() {
   const filteredImages = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     if (!keyword) return images;
-    return images.filter((image) => `${image.name} ${image.path} ${image.extension} ${image.group}`.toLowerCase().includes(keyword));
+    return images.filter((image) =>
+      `${image.name} ${image.path} ${image.extension} ${image.group}`.toLowerCase().includes(keyword),
+    );
   }, [images, search]);
 
   const uploadCount = images.filter((image) => image.managed).length;
   const siteImageCount = images.length - uploadCount;
   const deletableCount = images.filter((image) => image.deletable).length;
 
-  const loadImages = async () => {
+  const loadImages = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -53,11 +55,11 @@ export function MediaLibrary() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadImages();
-  }, []);
+  }, [loadImages]);
 
   const copyText = async (text: string, message: string) => {
     await navigator.clipboard.writeText(text);
@@ -82,7 +84,7 @@ export function MediaLibrary() {
 
   const handleDelete = async (image: MediaImage) => {
     if (!image.deletable) {
-      toast.info('只能删除 public/img 下的图片文件。');
+      toast.info('只能删除 public/img/cms 下的后台上传图片。');
       return;
     }
 
@@ -102,7 +104,7 @@ export function MediaLibrary() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/5">
+      <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-black/5 shadow-lg">
         <div className="border-border border-b bg-gradient-to-r from-sky-500/15 via-card to-card p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-2">
@@ -112,7 +114,9 @@ export function MediaLibrary() {
               </div>
               <h2 className="font-bold text-2xl">查看全部图片资源</h2>
               <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                当前展示 GitHub 仓库 <span className="font-mono text-foreground">{directory}</span> 下的全部图片。后台上传会写入 <span className="font-mono text-foreground">{uploadDirectory}</span>；所有 public/img 图片都可删除，删除正在使用的图片会影响前台显示。
+                当前展示 GitHub 仓库 <span className="font-mono text-foreground">{directory}</span> 下的全部图片。后台上传会写入{' '}
+                <span className="font-mono text-foreground">{uploadDirectory}</span>
+                ；只有后台上传图片可删除，删除正在使用的图片会影响前台显示。
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -124,11 +128,17 @@ export function MediaLibrary() {
                 onChange={(event) => handleUpload(event.target.files)}
               />
               <Button variant="outline" size="sm" onClick={loadImages} disabled={isLoading || isUploading}>
-                <Icon icon={isLoading ? 'ri:loader-4-line' : 'ri:refresh-line'} className={cn('mr-1.5 size-4', isLoading && 'animate-spin')} />
+                <Icon
+                  icon={isLoading ? 'ri:loader-4-line' : 'ri:refresh-line'}
+                  className={cn('mr-1.5 size-4', isLoading && 'animate-spin')}
+                />
                 刷新
               </Button>
               <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                <Icon icon={isUploading ? 'ri:loader-4-line' : 'ri:upload-cloud-2-line'} className={cn('mr-1.5 size-4', isUploading && 'animate-spin')} />
+                <Icon
+                  icon={isUploading ? 'ri:loader-4-line' : 'ri:upload-cloud-2-line'}
+                  className={cn('mr-1.5 size-4', isUploading && 'animate-spin')}
+                />
                 上传图片
               </Button>
             </div>
@@ -138,7 +148,10 @@ export function MediaLibrary() {
         <div className="p-5 lg:p-6">
           <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_auto]">
             <div className="relative">
-              <Icon icon="ri:search-line" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Icon
+                icon="ri:search-line"
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              />
               <input
                 type="text"
                 value={search}
@@ -148,11 +161,16 @@ export function MediaLibrary() {
               />
             </div>
             <div className="flex items-center rounded-2xl border border-border bg-muted/20 px-4 text-muted-foreground text-sm">
-              共 {images.length} 张，当前显示 {filteredImages.length} 张；后台上传 {uploadCount} 张，站点图片 {siteImageCount} 张，可删除 {deletableCount} 张
+              共 {images.length} 张，当前显示 {filteredImages.length} 张；后台上传 {uploadCount} 张，站点图片 {siteImageCount}{' '}
+              张，可删除 {deletableCount} 张
             </div>
           </div>
 
-          {error && <div className="mb-5 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-destructive text-sm">{error}</div>}
+          {error && (
+            <div className="mb-5 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-destructive text-sm">
+              {error}
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex min-h-72 items-center justify-center text-muted-foreground">
@@ -171,7 +189,12 @@ export function MediaLibrary() {
                 <article key={image.path} className="group overflow-hidden rounded-2xl border border-border bg-background/60">
                   <div className="relative aspect-[4/3] bg-muted/40">
                     {isPreviewable(image) ? (
-                      <img src={image.rawUrl || image.url} alt={image.name} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+                      <img
+                        src={image.rawUrl || image.url}
+                        alt={image.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                      />
                     ) : (
                       <div className="flex h-full items-center justify-center text-muted-foreground">
                         <Icon icon="ri:file-image-line" className="size-10" />
@@ -180,14 +203,23 @@ export function MediaLibrary() {
                     <span className="absolute top-3 left-3 rounded-full bg-black/55 px-2 py-1 font-medium text-white text-xs uppercase backdrop-blur">
                       {image.extension || 'image'}
                     </span>
-                    <span className={cn('absolute top-3 right-3 rounded-full px-2 py-1 font-medium text-xs backdrop-blur', image.deletable ? 'bg-sky-500/80 text-white' : 'bg-black/55 text-white')}>
+                    <span
+                      className={cn(
+                        'absolute top-3 right-3 rounded-full px-2 py-1 font-medium text-xs backdrop-blur',
+                        image.deletable ? 'bg-sky-500/80 text-white' : 'bg-black/55 text-white',
+                      )}
+                    >
                       {image.group || (image.managed ? '后台上传' : '站点图片')}
                     </span>
                   </div>
                   <div className="space-y-3 p-4">
                     <div>
-                      <h3 className="line-clamp-1 font-medium text-sm" title={image.name}>{image.name}</h3>
-                      <p className="mt-1 line-clamp-1 font-mono text-muted-foreground text-xs" title={image.url}>{image.url}</p>
+                      <h3 className="line-clamp-1 font-medium text-sm" title={image.name}>
+                        {image.name}
+                      </h3>
+                      <p className="mt-1 line-clamp-1 font-mono text-muted-foreground text-xs" title={image.url}>
+                        {image.url}
+                      </p>
                     </div>
                     <div className="flex items-center justify-between text-muted-foreground text-xs">
                       <span>{formatSize(image.size)}</span>
@@ -197,11 +229,26 @@ export function MediaLibrary() {
                       <Button variant="outline" size="sm" onClick={() => copyText(image.url, '站内图片链接已复制')}>
                         复制
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => window.open(image.rawUrl || image.url, '_blank', 'noopener,noreferrer')}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(image.rawUrl || image.url, '_blank', 'noopener,noreferrer')}
+                      >
                         查看
                       </Button>
-                      <Button variant={image.deletable ? 'destructive' : 'outline'} size="sm" onClick={() => handleDelete(image)} disabled={!image.deletable || deletingPath === image.path}>
-                        {deletingPath === image.path ? <Icon icon="ri:loader-4-line" className="size-4 animate-spin" /> : image.deletable ? '删除' : '不可删'}
+                      <Button
+                        variant={image.deletable ? 'destructive' : 'outline'}
+                        size="sm"
+                        onClick={() => handleDelete(image)}
+                        disabled={!image.deletable || deletingPath === image.path}
+                      >
+                        {deletingPath === image.path ? (
+                          <Icon icon="ri:loader-4-line" className="size-4 animate-spin" />
+                        ) : image.deletable ? (
+                          '删除'
+                        ) : (
+                          '不可删'
+                        )}
                       </Button>
                     </div>
                   </div>

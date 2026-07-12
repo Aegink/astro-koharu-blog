@@ -35,7 +35,7 @@
 - 分类列表：`https://你的域名/categories/`
 - 标签列表：`https://你的域名/tags/`
 
-后台登录密码来自 Cloudflare Pages 环境变量 `CMS_ADMIN_PASSWORD`。
+后台登录密码来自 Cloudflare Pages 环境变量 `CMS_ADMIN_PASSWORD`。登录成功后服务端会签发 8 小时有效的 `HttpOnly` 会话 Cookie，浏览器不会保存明文后台密码。
 
 ## 4. 重要目录
 
@@ -139,7 +139,7 @@ console.log("代码块");
 
 ## 8. 图片怎么用
 
-后台上传图片后，会把图片保存到仓库的 `public/img/` 目录，文章里引用类似：
+后台上传图片后，会把图片保存到仓库的 `public/img/cms/` 目录，文章里引用类似：
 
 ```markdown
 ![图片说明](/img/uploads/example.webp)
@@ -301,6 +301,7 @@ Aegink/astro-koharu-blog
 |------|------|
 | `GITHUB_TOKEN` | 后台写入 GitHub 仓库需要 |
 | `CMS_ADMIN_PASSWORD` | 后台登录密码 |
+| `CMS_SESSION_SECRET` | 推荐配置；用于签名后台短期会话，未配置时使用后台密码派生 |
 | `GITHUB_OWNER` | GitHub 用户名，可选 |
 | `GITHUB_REPO` | GitHub 仓库名，可选 |
 | `GITHUB_BRANCH` | GitHub 分支名，可选 |

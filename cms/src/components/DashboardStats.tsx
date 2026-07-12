@@ -11,9 +11,10 @@ interface DashboardStatsProps {
   total: number;
   published: number;
   draft: number;
+  trash: number;
 }
 
-export function DashboardStats({ total, published, draft }: DashboardStatsProps) {
+export function DashboardStats({ total, published, draft, trash }: DashboardStatsProps) {
   const stats = [
     {
       label: '文章总数',
@@ -36,10 +37,17 @@ export function DashboardStats({ total, published, draft }: DashboardStatsProps)
       iconColor: 'text-orange-500',
       bgColor: 'bg-orange-500/20',
     },
+    {
+      label: '回收站',
+      value: trash,
+      icon: 'ri:delete-bin-line',
+      iconColor: 'text-rose-500',
+      bgColor: 'bg-rose-500/20',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => (
         <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center gap-4">

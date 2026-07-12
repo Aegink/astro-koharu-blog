@@ -18,12 +18,13 @@ import { EditorTOC } from '@/components/EditorTOC';
 import { FrontmatterEditor, type FrontmatterEditorRef } from '@/components/FrontmatterEditor';
 import { MarkdownPreview } from '@/components/MarkdownPreview';
 import { type MarkdownSnippet, MarkdownSnippetPanel } from '@/components/MarkdownSnippetPanel';
+import { PostHistoryPanel } from '@/components/PostHistoryPanel';
 import { Button } from '@/components/ui/button';
 import { type EditorHeading, useEditorHeadings } from '@/hooks';
 import { readPost, writePost } from '@/lib/api';
 import { detectNewCategories, getCategoryMap, setCategoryMap } from '@/lib/category';
 import { cn } from '@/lib/utils';
-import type { BlogSchema } from '@/types';
+import type { BlogSchema, ReadPostResult } from '@/types';
 
 // Supported languages for code blocks
 const CODE_BLOCK_LANGUAGES = {
@@ -102,7 +103,7 @@ async function markdownToBlocks(editor: ReturnType<typeof useCreateBlockNote>, m
   editor.replaceBlocks(editor.document, blocks);
 }
 
-type SidebarTab = 'frontmatter' | 'toc' | 'preview';
+type SidebarTab = 'frontmatter' | 'toc' | 'preview' | 'history';
 type EditorMode = 'markdown' | 'rich';
 
 const SIDEBAR_WIDTH_KEY = 'cms-sidebar-width';
@@ -114,6 +115,7 @@ type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'restored';
 type AutoSaveDraft = {
   postId: string;
   updatedAt: string;
+  baseSha?: string;
   frontmatter: BlogSchema;
   content: string;
 };
@@ -204,6 +206,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
 
   // Frontmatter state
   const [frontmatter, setFrontmatter] = useState<BlogSchema>({ title: '' });
+  const [baseSha, setBaseSha] = useState('');
   const frontmatterRef = useRef<FrontmatterEditorRef>(null);
 
   // Markdown source and preview state
@@ -242,6 +245,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         const nextContent = shouldRestore && draft ? draft.content : data.content;
 
         setFrontmatter(nextFrontmatter);
+        setBaseSha(shouldRestore && draft?.baseSha ? draft.baseSha : data.sha);
         setMarkdownContent(nextContent || '');
         setPreviewContent(nextContent || '');
         initialFrontmatterLoaded.current = true;
@@ -292,7 +296,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
       try {
         const content = editorMode === 'markdown' || !editor ? markdownContent : await blocksToMarkdown(editor);
         const updatedAt = new Date().toISOString();
-        const draft: AutoSaveDraft = { postId, updatedAt, frontmatter, content };
+        const draft: AutoSaveDraft = { postId, updatedAt, baseSha, frontmatter, content };
         localStorage.setItem(getAutoSaveKey(postId), JSON.stringify(draft));
         setAutoSaveStatus('saved');
         setAutoSaveTime(updatedAt);
@@ -302,7 +306,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
     }, AUTOSAVE_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [editor, editorMode, editorRevision, frontmatter, hasUnsavedChanges, isSaving, markdownContent, postId]);
+  }, [baseSha, editor, editorMode, editorRevision, frontmatter, hasUnsavedChanges, isSaving, markdownContent, postId]);
 
   // Handle frontmatter changes
   const handleFrontmatterChange = useCallback((fm: BlogSchema) => {
@@ -326,6 +330,28 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
       setHasUnsavedChanges(true);
     }
   }, []);
+
+  const handleHistoryRestored = useCallback(
+    async (post: ReadPostResult) => {
+      setFrontmatter(post.frontmatter);
+      setMarkdownContent(post.content);
+      setPreviewContent(post.content);
+      setBaseSha(post.sha);
+      setHasUnsavedChanges(false);
+      setAutoSaveStatus('idle');
+      setAutoSaveTime(null);
+      clearAutoSaveDraft(postId);
+      if (editor) {
+        try {
+          await markdownToBlocks(editor, post.content);
+        } catch (error) {
+          console.warn('恢复版本后同步富文本内容失败，Markdown 源码已正常更新：', error);
+        }
+      }
+      onSaved?.();
+    },
+    [editor, onSaved, postId],
+  );
 
   const handleSnippetInsert = useCallback(
     (snippet: MarkdownSnippet) => {
@@ -409,7 +435,8 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
           date: frontmatter.date || now,
         };
 
-        await writePost(postId, updatedFrontmatter, content, categoryMappings);
+        const result = await writePost(postId, updatedFrontmatter, content, baseSha, categoryMappings);
+        setBaseSha(result.sha);
 
         if (editorMode === 'rich') {
           setMarkdownContent(content);
@@ -434,7 +461,7 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
         setIsSaving(false);
       }
     },
-    [editor, editorMode, frontmatter, markdownContent, postId, onSaved],
+    [baseSha, editor, editorMode, frontmatter, markdownContent, postId, onSaved],
   );
 
   // 保存 post with new category detection
@@ -808,6 +835,19 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
                 <Icon icon="ri:eye-line" className="mr-1 inline-block size-4" />
                 预览
               </button>
+              <button
+                type="button"
+                onClick={() => handleTabChange('history')}
+                className={cn(
+                  'flex-1 px-3 py-2.5 font-medium text-sm transition-colors',
+                  sidebarTab === 'history'
+                    ? 'border-primary border-b-2 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Icon icon="ri:history-line" className="mr-1 inline-block size-4" />
+                历史
+              </button>
             </div>
 
             {/* Tab content */}
@@ -829,6 +869,9 @@ export function PostEditor({ postId, onClose, onSaved }: PostEditorProps) {
                 <div className="p-4">
                   <MarkdownPreview content={previewContent} />
                 </div>
+              )}
+              {sidebarTab === 'history' && (
+                <PostHistoryPanel postId={postId} baseSha={baseSha} onRestored={handleHistoryRestored} />
               )}
             </div>
           </aside>

@@ -1,30 +1,28 @@
-const STORAGE_KEY = 'koharu_cms_password';
-
-export function getCmsPassword(): string {
-  if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(STORAGE_KEY) || '';
+export async function loginCms(password: string): Promise<void> {
+  const response = await fetch('/api/cms/session', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || `登录失败：${response.status}`);
+  }
 }
 
-export function setCmsPassword(password: string): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, password);
+export async function logoutCms(): Promise<void> {
+  await fetch('/api/cms/session', { method: 'DELETE', credentials: 'same-origin' }).catch(() => undefined);
 }
 
-export function clearCmsPassword(): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(STORAGE_KEY);
-}
-
-export function getAuthHeaders(): HeadersInit {
-  const password = getCmsPassword();
-  return password ? { Authorization: `Bearer ${password}` } : {};
+export async function hasCmsSession(): Promise<boolean> {
+  const response = await fetch('/api/cms/session', { credentials: 'same-origin' }).catch(() => null);
+  return response?.ok === true;
 }
 
 export function cmsFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const headers = new Headers(init.headers);
-  const password = getCmsPassword();
-  if (password && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${password}`);
-  }
-  return fetch(input, { ...init, headers });
+  return fetch(input, { ...init, credentials: 'same-origin' }).then((response) => {
+    if (response.status === 401 && typeof window !== 'undefined') window.dispatchEvent(new Event('cms:unauthorized'));
+    return response;
+  });
 }

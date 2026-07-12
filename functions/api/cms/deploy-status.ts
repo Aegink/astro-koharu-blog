@@ -38,9 +38,17 @@ async function fetchCloudflareDeployments(env: Env) {
       },
     },
   );
-  const data = (await response.json().catch(() => ({}))) as { success?: boolean; errors?: Array<{ message?: string }>; result?: CloudflareDeployment[] };
+  const data = (await response.json().catch(() => ({}))) as {
+    success?: boolean;
+    errors?: Array<{ message?: string }>;
+    result?: CloudflareDeployment[];
+  };
   if (!response.ok || data.success === false) {
-    const message = data.errors?.map((item) => item.message).filter(Boolean).join('；') || `Cloudflare API ${response.status}`;
+    const message =
+      data.errors
+        ?.map((item) => item.message)
+        .filter(Boolean)
+        .join('；') || `Cloudflare API ${response.status}`;
     return { configured: true, projectName: config.projectName, missingVariables: [], message, deployments: [] };
   }
 
@@ -67,7 +75,7 @@ async function fetchCloudflareDeployments(env: Env) {
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const repoInfo = repo(context.env);

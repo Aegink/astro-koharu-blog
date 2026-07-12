@@ -1,13 +1,16 @@
 import {
+  CONTENT_DIR,
   checkAuth,
   deleteFile,
   type Env,
   githubRequest,
   isSafeMediaPath,
   json,
+  listMarkdownFiles,
   listRepoTree,
   MEDIA_DIR,
   MEDIA_ROOT_DIR,
+  readFile,
   repo,
 } from '../../_lib/online-cms';
 
@@ -28,7 +31,7 @@ function toPublicUrl(path: string): string {
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const { owner, name, branch } = repo(context.env);
@@ -61,11 +64,25 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
 export async function onRequestDelete(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const body = (await context.request.json()) as DeleteBody;
-    if (!body.path || !isSafeMediaPath(body.path)) return json({ error: '图片路径不合法，只能删除 public/img 下的图片文件。' }, 400);
+    if (!body.path || !isSafeMediaPath(body.path))
+      return json({ error: '图片路径不合法，只能删除 public/img/cms 下的后台上传图片。' }, 400);
+
+    const publicUrl = toPublicUrl(body.path);
+    const references: string[] = [];
+    for (const postId of await listMarkdownFiles(context.env)) {
+      const post = await readFile(context.env, `${CONTENT_DIR}/${postId}`);
+      if (post.content.includes(publicUrl) || post.content.includes(body.path)) references.push(postId);
+    }
+    if (references.length > 0) {
+      return json(
+        { error: `图片仍被 ${references.length} 篇文章引用，请先移除引用：${references.slice(0, 5).join('、')}` },
+        409,
+      );
+    }
 
     let sha = body.sha;
     if (!sha) {

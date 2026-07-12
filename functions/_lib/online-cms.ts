@@ -6,6 +6,7 @@ export type Env = {
   GITHUB_REPO?: string;
   GITHUB_BRANCH?: string;
   CMS_ADMIN_PASSWORD?: string;
+  CMS_SESSION_SECRET?: string;
   GITHUB_COMMITTER_NAME?: string;
   GITHUB_COMMITTER_EMAIL?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
@@ -32,18 +33,137 @@ const CONFIG_PATH = 'config/site.yaml';
 const MEDIA_ROOT_DIR = 'public/img';
 const MEDIA_DIR = 'public/img/cms';
 
-export function json(data: unknown, status = 200): Response {
+export function json(data: unknown, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
   });
 }
 
-export function checkAuth(request: Request, env: Env): Response | null {
+const SESSION_COOKIE = 'koharu_cms_session';
+const SESSION_TTL_SECONDS = 8 * 60 * 60;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_LOGIN_FAILURES = 5;
+const loginFailures = new Map<string, { count: number; resetAt: number }>();
+
+function encodeBase64Url(value: Uint8Array): string {
+  let binary = '';
+  for (const byte of value) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function decodeBase64Url(value: string): Uint8Array {
+  const base64 = value
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(value.length / 4) * 4, '=');
+  const binary = atob(base64);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function sessionSecret(env: Env): string {
+  return env.CMS_SESSION_SECRET || env.CMS_ADMIN_PASSWORD || '';
+}
+
+async function signSessionPayload(payload: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+  ]);
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return encodeBase64Url(new Uint8Array(signature));
+}
+
+async function createSessionToken(env: Env): Promise<string> {
+  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const payload = encodeBase64Url(new TextEncoder().encode(JSON.stringify({ expiresAt, nonce: crypto.randomUUID() })));
+  return `${payload}.${await signSessionPayload(payload, sessionSecret(env))}`;
+}
+
+async function verifySessionToken(token: string, env: Env): Promise<boolean> {
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature || !sessionSecret(env)) return false;
+
+  try {
+    const expected = await signSessionPayload(payload, sessionSecret(env));
+    if (expected.length !== signature.length) return false;
+    let mismatch = 0;
+    for (let index = 0; index < expected.length; index += 1)
+      mismatch |= expected.charCodeAt(index) ^ signature.charCodeAt(index);
+    if (mismatch !== 0) return false;
+
+    const decoded = new TextDecoder().decode(decodeBase64Url(payload));
+    const data = JSON.parse(decoded) as { expiresAt?: number };
+    return typeof data.expiresAt === 'number' && data.expiresAt > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+function cookieValue(request: Request, name: string): string {
+  const cookies = request.headers.get('cookie') || '';
+  for (const part of cookies.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return rest.join('=');
+  }
+  return '';
+}
+
+function loginKey(request: Request): string {
+  return request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+}
+
+function isLoginBlocked(key: string): boolean {
+  const failure = loginFailures.get(key);
+  if (!failure) return false;
+  if (failure.resetAt <= Date.now()) {
+    loginFailures.delete(key);
+    return false;
+  }
+  return failure.count >= MAX_LOGIN_FAILURES;
+}
+
+function recordLoginFailure(key: string) {
+  const current = loginFailures.get(key);
+  if (!current || current.resetAt <= Date.now()) {
+    loginFailures.set(key, { count: 1, resetAt: Date.now() + LOGIN_WINDOW_MS });
+    return;
+  }
+  current.count += 1;
+}
+
+function secureCookie(request: Request): string {
+  return new URL(request.url).protocol === 'https:' ? '; Secure' : '';
+}
+
+export async function createCmsSession(request: Request, env: Env): Promise<Response> {
   if (!env.GITHUB_TOKEN) return json({ error: '缺少 GITHUB_TOKEN，请先在 Cloudflare Pages 环境变量中配置。' }, 500);
   if (!env.CMS_ADMIN_PASSWORD) return json({ error: '缺少 CMS_ADMIN_PASSWORD，请先配置后台登录密码。' }, 500);
-  const provided = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
-  if (!provided || provided !== env.CMS_ADMIN_PASSWORD) return json({ error: '后台密码不正确，请重新登录。' }, 401);
+
+  const key = loginKey(request);
+  if (isLoginBlocked(key)) return json({ error: '登录失败次数过多，请 15 分钟后再试。' }, 429);
+
+  const body = (await request.json().catch(() => ({}))) as { password?: string };
+  if (body.password !== env.CMS_ADMIN_PASSWORD) {
+    recordLoginFailure(key);
+    return json({ error: '后台密码不正确，请重新登录。' }, 401);
+  }
+
+  loginFailures.delete(key);
+  const token = await createSessionToken(env);
+  const cookie = `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}${secureCookie(request)}`;
+  return json({ success: true, expiresIn: SESSION_TTL_SECONDS }, 200, { 'set-cookie': cookie });
+}
+
+export function clearCmsSession(request: Request): Response {
+  const cookie = `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${secureCookie(request)}`;
+  return json({ success: true }, 200, { 'set-cookie': cookie });
+}
+
+export async function checkAuth(request: Request, env: Env): Promise<Response | null> {
+  if (!env.GITHUB_TOKEN) return json({ error: '缺少 GITHUB_TOKEN，请先在 Cloudflare Pages 环境变量中配置。' }, 500);
+  if (!env.CMS_ADMIN_PASSWORD) return json({ error: '缺少 CMS_ADMIN_PASSWORD，请先配置后台登录密码。' }, 500);
+  const token = cookieValue(request, SESSION_COOKIE);
+  if (!token || !(await verifySessionToken(token, env))) return json({ error: '登录会话无效或已过期，请重新登录。' }, 401);
   return null;
 }
 
@@ -154,7 +274,16 @@ export function isSafeMarkdownPath(postId: string): boolean {
 }
 
 export function isSafeMediaPath(filePath: string): boolean {
-  return filePath.startsWith(`${MEDIA_ROOT_DIR}/`) && !filePath.includes('..') && /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(filePath);
+  return filePath.startsWith(`${MEDIA_DIR}/`) && !filePath.includes('..') && /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(filePath);
+}
+
+export async function readFileAtRef(env: Env, filePath: string, ref: string): Promise<GitHubFile> {
+  const { owner, name } = repo(env);
+  const data = await githubRequest<{ content: string; sha: string }>(
+    env,
+    `/repos/${owner}/${name}/contents/${encodePath(filePath)}?ref=${encodeURIComponent(ref)}`,
+  );
+  return { content: decodeBase64(data.content), sha: data.sha };
 }
 
 function dateToString(date: Date): string {
@@ -192,7 +321,9 @@ export function extractCategories(categories: unknown): string[] {
   if (!Array.isArray(categories)) return [];
   return [
     ...new Set(
-      categories.flatMap((item) => (Array.isArray(item) ? item : [item])).filter((item): item is string => typeof item === 'string'),
+      categories
+        .flatMap((item) => (Array.isArray(item) ? item : [item]))
+        .filter((item): item is string => typeof item === 'string'),
     ),
   ];
 }
@@ -218,13 +349,17 @@ export async function getCategoryMap(env: Env): Promise<Record<string, string>> 
 
 export async function replaceCategoryMap(env: Env, categoryMap: Record<string, string>) {
   const config = await readFile(env, CONFIG_PATH);
-  const parsed = (yaml.load(config.content) || {}) as Record<string, unknown>;
-  parsed.categoryMap = categoryMap;
-  const next = yaml.dump(parsed, { flowLevel: 2, lineWidth: -1, quotingType: "'", forceQuotes: false, sortKeys: false });
+  const next = replaceCategoryMapContent(config.content, categoryMap);
   await writeFile(env, CONFIG_PATH, next, 'chore(cms): update category map', config.sha);
 }
 
-function addCategoryMappings(configContent: string, mappings?: Record<string, string>): string | null {
+export function replaceCategoryMapContent(configContent: string, categoryMap: Record<string, string>): string {
+  const parsed = (yaml.load(configContent) || {}) as Record<string, unknown>;
+  parsed.categoryMap = categoryMap;
+  return yaml.dump(parsed, { flowLevel: 2, lineWidth: -1, quotingType: "'", forceQuotes: false, sortKeys: false });
+}
+
+export function addCategoryMappings(configContent: string, mappings?: Record<string, string>): string | null {
   if (!mappings || Object.keys(mappings).length === 0) return null;
   const lines = configContent.split('\n');
   const output: string[] = [];
@@ -254,7 +389,53 @@ export async function updateCategoryMappings(env: Env, mappings?: Record<string,
   if (!mappings || Object.keys(mappings).length === 0) return;
   const config = await readFile(env, CONFIG_PATH);
   const next = addCategoryMappings(config.content, mappings);
-  if (next && next !== config.content) await writeFile(env, CONFIG_PATH, next, 'chore(cms): update category mappings', config.sha);
+  if (next && next !== config.content)
+    await writeFile(env, CONFIG_PATH, next, 'chore(cms): update category mappings', config.sha);
+}
+
+export async function commitTextFiles(
+  env: Env,
+  updates: Array<{ path: string; content: string }>,
+  message: string,
+): Promise<{ commitSha: string; fileShas: Record<string, string> }> {
+  if (updates.length === 0) return { commitSha: '', fileShas: {} };
+
+  const { owner, name, branch } = repo(env);
+  const ref = await githubRequest<{ object: { sha: string } }>(
+    env,
+    `/repos/${owner}/${name}/git/ref/heads/${encodePath(branch)}`,
+  );
+  const parent = await githubRequest<{ tree: { sha: string } }>(env, `/repos/${owner}/${name}/git/commits/${ref.object.sha}`);
+  const fileShas: Record<string, string> = {};
+  const tree = await Promise.all(
+    updates.map(async (update) => {
+      const blob = await githubRequest<{ sha: string }>(env, `/repos/${owner}/${name}/git/blobs`, {
+        method: 'POST',
+        body: JSON.stringify({ content: encodeBase64(update.content), encoding: 'base64' }),
+      });
+      fileShas[update.path] = blob.sha;
+      return { path: update.path, mode: '100644', type: 'blob', sha: blob.sha };
+    }),
+  );
+
+  const nextTree = await githubRequest<{ sha: string }>(env, `/repos/${owner}/${name}/git/trees`, {
+    method: 'POST',
+    body: JSON.stringify({ base_tree: parent.tree.sha, tree }),
+  });
+  const commitBody: Record<string, unknown> = { message, tree: nextTree.sha, parents: [ref.object.sha] };
+  if (env.GITHUB_COMMITTER_NAME && env.GITHUB_COMMITTER_EMAIL) {
+    commitBody.committer = { name: env.GITHUB_COMMITTER_NAME, email: env.GITHUB_COMMITTER_EMAIL };
+  }
+  const commit = await githubRequest<{ sha: string }>(env, `/repos/${owner}/${name}/git/commits`, {
+    method: 'POST',
+    body: JSON.stringify(commitBody),
+  });
+  await githubRequest(env, `/repos/${owner}/${name}/git/refs/heads/${encodePath(branch)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sha: commit.sha, force: false }),
+  });
+
+  return { commitSha: commit.sha, fileShas };
 }
 
 export async function listRepoTree(env: Env): Promise<GitHubTreeItem[]> {

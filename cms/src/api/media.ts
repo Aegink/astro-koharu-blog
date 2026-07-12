@@ -8,7 +8,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Context } from 'hono';
-import { MEDIA_DIR, MEDIA_ROOT_DIR } from '@/lib/paths';
+import { CONTENT_DIR, MEDIA_DIR, MEDIA_ROOT_DIR } from '@/lib/paths';
 
 const IMAGE_RE = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
 
@@ -55,6 +55,23 @@ async function walkImages(projectRoot: string, dir: string): Promise<MediaFile[]
   return files;
 }
 
+async function findMediaReferences(projectRoot: string, publicUrl: string, repoPath: string, dir = ''): Promise<string[]> {
+  const contentRoot = path.resolve(projectRoot, CONTENT_DIR);
+  const absoluteDir = path.join(contentRoot, dir);
+  const entries = await fs.readdir(absoluteDir, { withFileTypes: true }).catch(() => []);
+  const references: string[] = [];
+  for (const entry of entries) {
+    const relativePath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      references.push(...(await findMediaReferences(projectRoot, publicUrl, repoPath, relativePath)));
+    } else if (entry.isFile() && /\.mdx?$/i.test(entry.name)) {
+      const content = await fs.readFile(path.join(contentRoot, relativePath), 'utf-8');
+      if (content.includes(publicUrl) || content.includes(repoPath)) references.push(relativePath.replace(/\\/g, '/'));
+    }
+  }
+  return references;
+}
+
 function localSha(repoPath: string, size: number, mtimeMs: number): string {
   return crypto.createHash('sha1').update(`${repoPath}:${size}:${mtimeMs}`).digest('hex');
 }
@@ -69,9 +86,17 @@ export async function mediaHandler(c: Context) {
         return c.json({ error: '图片路径不合法。' }, 400);
       }
 
-      const target = resolveInside(projectRoot, body.path, MEDIA_ROOT_DIR);
+      const target = resolveInside(projectRoot, body.path, MEDIA_DIR);
       if (!target) {
-        return c.json({ error: '图片路径不合法，只能删除 public/img 下的图片文件。' }, 400);
+        return c.json({ error: '图片路径不合法，只能删除 public/img/cms 下的后台上传图片。' }, 400);
+      }
+
+      const references = await findMediaReferences(projectRoot, toPublicUrl(body.path), body.path);
+      if (references.length > 0) {
+        return c.json(
+          { error: `图片仍被 ${references.length} 篇文章引用，请先移除引用：${references.slice(0, 5).join('、')}` },
+          409,
+        );
       }
 
       await fs.unlink(target);
@@ -91,7 +116,7 @@ export async function mediaHandler(c: Context) {
           size: stat.size,
           sha: localSha(repoPath, stat.size, stat.mtimeMs),
           extension: path.extname(repoPath).slice(1).toLowerCase(),
-          deletable: true,
+          deletable: managed,
           managed,
           group: managed ? '后台上传' : '站点图片',
         };

@@ -4,6 +4,7 @@
  * Writes frontmatter and content to a blog post file.
  */
 
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { isValid, parse, parseISO } from 'date-fns';
@@ -13,7 +14,7 @@ import yaml from 'js-yaml';
 import { z } from 'zod';
 import { addCategoryMappings } from '@/lib/config';
 import { serializeFrontmatter } from '@/lib/frontmatter';
-import { CONTENT_DIR } from '@/lib/paths';
+import { CONFIG_PATH, CONTENT_DIR } from '@/lib/paths';
 import { hasValidMarkdownExtension, isPathSafe } from '@/lib/validation';
 
 /** Zod schema for write post request validation */
@@ -21,6 +22,7 @@ const writePostRequestSchema = z.object({
   postId: z.string().min(1, 'postId is required'),
   frontmatter: z.record(z.unknown()),
   content: z.string(),
+  baseSha: z.string().min(1, 'baseSha is required'),
   categoryMappings: z.record(z.string(), z.string()).optional(),
 });
 
@@ -41,7 +43,7 @@ export async function writeHandler(c: Context) {
       return c.json({ error: errorMessage }, 400);
     }
 
-    const { postId, frontmatter, content, categoryMappings } = parseResult.data;
+    const { postId, frontmatter, content, baseSha, categoryMappings } = parseResult.data;
 
     // Validate path safety
     if (!isPathSafe(postId)) {
@@ -55,6 +57,11 @@ export async function writeHandler(c: Context) {
 
     // Construct the full file path
     const filePath = path.join(projectRoot, CONTENT_DIR, postId);
+    const currentContent = await fs.readFile(filePath, 'utf-8');
+    const currentSha = createHash('sha256').update(currentContent).digest('hex');
+    if (currentSha !== baseSha) {
+      return c.json({ error: '文章已被其他页面修改，请重新加载后合并内容。' }, 409);
+    }
 
     // Convert date strings to Date objects
     // Frontend now sends local time strings in "yyyy-MM-dd HH:mm:ss" format
@@ -115,19 +122,23 @@ export async function writeHandler(c: Context) {
       },
     });
 
-    // Add new category mappings if provided
-    if (categoryMappings && Object.keys(categoryMappings).length > 0) {
-      await addCategoryMappings(projectRoot, categoryMappings);
+    const configPath = path.join(projectRoot, CONFIG_PATH);
+    const configBackup =
+      categoryMappings && Object.keys(categoryMappings).length > 0 ? await fs.readFile(configPath, 'utf-8') : null;
+    try {
+      if (categoryMappings && Object.keys(categoryMappings).length > 0) {
+        await addCategoryMappings(projectRoot, categoryMappings);
+      }
+      const dirPath = path.dirname(filePath);
+      await fs.mkdir(dirPath, { recursive: true });
+      await fs.writeFile(filePath, fileContent, 'utf-8');
+    } catch (error) {
+      await fs.writeFile(filePath, currentContent, 'utf-8').catch(() => undefined);
+      if (configBackup !== null) await fs.writeFile(configPath, configBackup, 'utf-8').catch(() => undefined);
+      throw error;
     }
 
-    // Ensure the directory exists
-    const dirPath = path.dirname(filePath);
-    await fs.mkdir(dirPath, { recursive: true });
-
-    // Write the file
-    await fs.writeFile(filePath, fileContent, 'utf-8');
-
-    return c.json({ success: true });
+    return c.json({ success: true, sha: createHash('sha256').update(fileContent).digest('hex') });
   } catch (error) {
     console.error('[CMS Write API] Error:', error);
     return c.json({ error: 'Internal server error' }, 500);

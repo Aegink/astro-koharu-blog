@@ -13,10 +13,12 @@ import type {
   ListPostsParams,
   ListPostsResponse,
   MediaLibraryResponse,
+  PostHistoryEntry,
   ReadPostResult,
   TaxonomyRenameResponse,
   ToggleDraftResponse,
   ToggleStickyResponse,
+  WritePostResponse,
 } from '@/types';
 import { cmsFetch } from './auth';
 import { setCategoryMap } from './category';
@@ -82,8 +84,9 @@ export async function writePost(
   postId: string,
   frontmatter: BlogSchema,
   content: string,
+  baseSha: string,
   categoryMappings?: Record<string, string>,
-): Promise<void> {
+): Promise<WritePostResponse> {
   const response = await cmsFetch('/api/cms/write', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -91,11 +94,17 @@ export async function writePost(
       postId,
       frontmatter: prepareFrontmatterForApi(frontmatter),
       content,
+      baseSha,
       categoryMappings,
     }),
   });
 
-  if (!response.ok) throw await readJsonError(response, '文章保存失败');
+  if (!response.ok)
+    throw await readJsonError(
+      response,
+      response.status === 409 ? '文章已被其他页面修改，请重新加载后合并内容' : '文章保存失败',
+    );
+  return response.json();
 }
 
 export async function listPosts(params?: ListPostsParams): Promise<ListPostsResponse> {
@@ -107,6 +116,8 @@ export async function listPosts(params?: ListPostsParams): Promise<ListPostsResp
   if (params?.search) searchParams.set('search', params.search);
   if (params?.sort) searchParams.set('sort', params.sort);
   if (params?.order) searchParams.set('order', params.order);
+  if (params?.page) searchParams.set('page', String(params.page));
+  if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize));
 
   const queryString = searchParams.toString();
   const response = await cmsFetch(`/api/cms/list${queryString ? `?${queryString}` : ''}`);
@@ -145,6 +156,44 @@ export async function toggleSticky(postId: string): Promise<ToggleStickyResponse
   });
 
   if (!response.ok) throw await readJsonError(response, '文章置顶状态切换失败');
+  return response.json();
+}
+
+export async function setPostDeleted(postId: string, deleted: boolean): Promise<void> {
+  const response = await cmsFetch('/api/cms/post-state', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postId, action: deleted ? 'trash' : 'restore' }),
+  });
+  if (!response.ok) throw await readJsonError(response, deleted ? '文章移入回收站失败' : '文章恢复失败');
+}
+
+export async function bulkUpdatePosts(postIds: string[], action: 'publish' | 'draft' | 'trash' | 'restore'): Promise<number> {
+  const response = await cmsFetch('/api/cms/bulk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postIds, action }),
+  });
+  if (!response.ok) throw await readJsonError(response, '批量操作失败');
+  const data = (await response.json()) as { changed: number };
+  return data.changed;
+}
+
+export async function getPostHistory(postId: string): Promise<PostHistoryEntry[]> {
+  const response = await cmsFetch(`/api/cms/history?postId=${encodeSlug(postId)}`);
+  if (!response.ok) throw await readJsonError(response, '版本历史读取失败');
+  const data = (await response.json()) as { commits: PostHistoryEntry[] };
+  return data.commits;
+}
+
+export async function restorePostVersion(postId: string, commitSha: string, baseSha: string): Promise<ReadPostResult> {
+  const response = await cmsFetch('/api/cms/history', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postId, commitSha, baseSha }),
+  });
+  if (!response.ok)
+    throw await readJsonError(response, response.status === 409 ? '文章已被修改，请重新加载历史记录' : '文章版本恢复失败');
   return response.json();
 }
 

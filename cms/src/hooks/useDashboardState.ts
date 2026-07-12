@@ -4,14 +4,14 @@
  * Manages the main dashboard state including posts data, filters, sorting, and actions.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { getCMSConfig, listPosts, toggleDraft, toggleSticky } from '@/lib/api';
+import { bulkUpdatePosts, getCMSConfig, listPosts, setPostDeleted, toggleDraft, toggleSticky } from '@/lib/api';
 import { buildEditorUrl, buildFilePath, getDefaultEditor } from '@/lib/editor-url';
 import type { ListPostsResponse } from '@/types';
 
 export type Tab = 'overview' | 'posts' | 'media' | 'taxonomy' | 'config' | 'deploy';
-export type StatusFilter = 'all' | 'draft' | 'published';
+export type StatusFilter = 'all' | 'draft' | 'published' | 'trash';
 export type SortField = 'date' | 'updated' | 'title';
 export type SortOrder = 'asc' | 'desc';
 
@@ -39,12 +39,17 @@ export interface UseDashboardStateResult {
   setStatus: (status: StatusFilter) => void;
   sortField: SortField;
   sortOrder: SortOrder;
+  page: number;
+  setPage: (page: number) => void;
 
   // Actions
   fetchData: () => Promise<void>;
   handleSort: (field: SortField) => void;
   handleToggleDraft: (postId: string) => Promise<void>;
   handleToggleSticky: (postId: string) => Promise<void>;
+  handleTrashPost: (postId: string) => Promise<void>;
+  handleRestorePost: (postId: string) => Promise<void>;
+  handleBulkAction: (postIds: string[], action: 'publish' | 'draft' | 'trash' | 'restore') => Promise<void>;
   handleCreatePostSuccess: (postId: string) => void;
   handleEditPost: (postId: string) => void;
   handleOpenInEditor: (postId: string) => void;
@@ -66,33 +71,63 @@ export function useDashboardState(): UseDashboardStateResult {
   const [projectRoot, setProjectRoot] = useState<string>('');
 
   // Filter state
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('all');
+  const [search, setSearchState] = useState('');
+  const [category, setCategoryState] = useState('');
+  const [status, setStatusState] = useState<StatusFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [page, setPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const hasLoaded = useRef(false);
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const setSearch = useCallback((value: string) => setSearchState(value), []);
+  const setCategory = useCallback((value: string) => {
+    setCategoryState(value);
+    setPage(1);
+  }, []);
+  const setStatus = useCallback((value: StatusFilter) => {
+    setStatusState(value);
+    setPage(1);
+  }, []);
 
   const params = useMemo(
     () => ({
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       category: category || undefined,
       status: status === 'all' ? undefined : status,
       sort: sortField,
       order: sortOrder,
+      page,
+      pageSize: 20,
     }),
-    [search, category, status, sortField, sortOrder],
+    [debouncedSearch, category, status, sortField, sortOrder, page],
   );
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
+    const currentRequest = ++requestId.current;
+    if (!hasLoaded.current) setIsLoading(true);
     setError(null);
     try {
       const result = await listPosts(params);
+      if (currentRequest !== requestId.current) return;
       setData(result);
+      hasLoaded.current = true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : '文章列表读取失败');
+      if (currentRequest !== requestId.current) return;
+      const message = err instanceof Error ? err.message : '文章列表读取失败';
+      if (hasLoaded.current) toast.error(message);
+      else setError(message);
     } finally {
-      setIsLoading(false);
+      if (currentRequest === requestId.current) setIsLoading(false);
     }
   }, [params]);
 
@@ -109,6 +144,7 @@ export function useDashboardState(): UseDashboardStateResult {
 
   const handleSort = useCallback(
     (field: SortField) => {
+      setPage(1);
       if (field === sortField) {
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       } else {
@@ -140,6 +176,48 @@ export function useDashboardState(): UseDashboardStateResult {
         fetchData();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : '文章置顶状态切换失败');
+      }
+    },
+    [fetchData],
+  );
+
+  const handleTrashPost = useCallback(
+    async (postId: string) => {
+      if (!window.confirm('确定把这篇文章移入回收站吗？文章会立即转为草稿，并可随时恢复。')) return;
+      try {
+        await setPostDeleted(postId, true);
+        toast.success('文章已移入回收站');
+        await fetchData();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : '文章移入回收站失败');
+      }
+    },
+    [fetchData],
+  );
+
+  const handleRestorePost = useCallback(
+    async (postId: string) => {
+      try {
+        await setPostDeleted(postId, false);
+        toast.success('文章已从回收站恢复');
+        await fetchData();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : '文章恢复失败');
+      }
+    },
+    [fetchData],
+  );
+
+  const handleBulkAction = useCallback(
+    async (postIds: string[], action: 'publish' | 'draft' | 'trash' | 'restore') => {
+      const labels = { publish: '发布', draft: '转为草稿', trash: '移入回收站', restore: '恢复' };
+      if (!window.confirm(`确定对选中的 ${postIds.length} 篇文章执行“${labels[action]}”吗？`)) return;
+      try {
+        const changed = await bulkUpdatePosts(postIds, action);
+        toast.success(`已处理 ${changed} 篇文章`);
+        await fetchData();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : '批量操作失败');
       }
     },
     [fetchData],
@@ -198,10 +276,15 @@ export function useDashboardState(): UseDashboardStateResult {
     setStatus,
     sortField,
     sortOrder,
+    page,
+    setPage,
     fetchData,
     handleSort,
     handleToggleDraft,
     handleToggleSticky,
+    handleTrashPost,
+    handleRestorePost,
+    handleBulkAction,
     handleCreatePostSuccess,
     handleEditPost,
     handleOpenInEditor,

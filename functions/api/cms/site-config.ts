@@ -7,7 +7,7 @@ type SaveBody = {
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const file = await readFile(context.env, CONFIG_PATH);
@@ -19,7 +19,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const body = (await context.request.json()) as SaveBody;

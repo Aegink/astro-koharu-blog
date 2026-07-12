@@ -10,7 +10,11 @@ const ALLOWED_TYPES: Record<string, string> = {
 };
 
 function sanitizeName(name: string): string {
-  const base = name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const base = name
+    .replace(/\.[^.]+$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
   return base || 'image';
 }
 
@@ -26,7 +30,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   try {
-    const authError = checkAuth(context.request, context.env);
+    const authError = await checkAuth(context.request, context.env);
     if (authError) return authError;
 
     const formData = await context.request.formData();

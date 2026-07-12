@@ -5,6 +5,7 @@
  */
 
 import { Marked, type MarkedExtension } from 'marked';
+import sanitizeHtml from 'sanitize-html';
 import { type BundledLanguage, type BundledTheme, codeToHtml, getSingletonHighlighter } from 'shiki';
 import { createLinkEmbedExtension } from './marked-link-embed';
 
@@ -90,7 +91,8 @@ function classAttribute(classes: string[]): string {
 }
 
 function processOutsideProtectedRegions(text: string, transform: (segment: string) => string): string {
-  const protectedRegex = /(^`{3,}.*\n[\s\S]*?^`{3,}\s*$|^~{3,}.*\n[\s\S]*?^~{3,}\s*$|`[^`\n]+`|\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/gm;
+  const protectedRegex =
+    /(^`{3,}.*\n[\s\S]*?^`{3,}\s*$|^~{3,}.*\n[\s\S]*?^~{3,}\s*$|`[^`\n]+`|\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/gm;
   let lastIndex = 0;
   const parts: string[] = [];
 
@@ -208,5 +210,51 @@ function getMarked(): Marked {
 export async function renderMarkdown(content: string): Promise<string> {
   const marked = getMarked();
   const html = await marked.parse(preprocessCmsShokaSyntax(content));
-  return html;
+  return sanitizeHtml(html, {
+    allowedTags: [
+      ...sanitizeHtml.defaults.allowedTags,
+      'img',
+      'figure',
+      'figcaption',
+      'details',
+      'summary',
+      'ruby',
+      'rt',
+      'rp',
+      'ins',
+      'mark',
+      'sub',
+      'sup',
+      'kbd',
+    ],
+    allowedAttributes: {
+      '*': ['class', 'id', 'title', 'style', 'aria-*', 'data-*'],
+      a: ['href', 'name', 'target', 'rel'],
+      img: ['src', 'alt', 'width', 'height', 'loading'],
+      code: ['class'],
+      pre: ['class', 'tabindex'],
+      input: ['type', 'checked', 'disabled'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: { img: ['http', 'https', 'data'] },
+    allowedStyles: {
+      span: {
+        color: [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i, /^var\(--[a-z0-9-]+\)$/i],
+        'background-color': [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i, /^var\(--[a-z0-9-]+\)$/i],
+        'font-style': [/^normal$|^italic$/],
+        'font-weight': [/^normal$|^bold$|^[1-9]00$/],
+        'text-decoration': [/^[a-z -]+$/i],
+      },
+      pre: {
+        color: [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i, /^var\(--[a-z0-9-]+\)$/i],
+        'background-color': [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i, /^var\(--[a-z0-9-]+\)$/i],
+      },
+    },
+    transformTags: {
+      a: (_tagName, attribs) => ({
+        tagName: 'a',
+        attribs: { ...attribs, rel: 'noopener noreferrer' },
+      }),
+    },
+  });
 }
