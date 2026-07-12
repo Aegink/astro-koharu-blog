@@ -2,7 +2,6 @@
 
 **Language:** [中文](../README.md) | **English** | [日本語](../docs/README.ja.md)
 
-![](https://r2.cosine.ren/i/2026/01/94383107ba4586f773938ed4dae34ff1.webp)
 
 A cute / anime-style / pink-blue themed blog, perfect for ACG, frontend dev, and journaling personal sites with excellent performance.
 
@@ -10,7 +9,7 @@ A cute / anime-style / pink-blue themed blog, perfect for ACG, frontend dev, and
 
 The overall design is inspired by the Hexo [Shoka](https://shoka.lostyu.me/computer-science/note/theme-shoka-doc/) theme, rebuilt with a modern tech stack for your personal blog.
 
-This repository has been cleaned up as a demo repository. Visit the theme developer's blog at https://blog.cosine.ren/ — give it a star if you like it!
+This repository is maintained for Aegink's personal blog and can be forked or customized as needed.
 
 Under active development
 
@@ -21,16 +20,10 @@ Under active development
 - Serverless full-site search powered by Pagefind
 - LQIP (Low Quality Image Placeholders) — gradient placeholders shown before images load
 
-![Demo](https://r2.cosine.ren/i/2025/12/417b098dffce2ced9c0ff6009e5213df.gif)
 
-[Excellent Performance](https://pagespeed.web.dev/analysis/https-blog-cosine-ren/w6qzrwbp9b?hl=en&form_factor=desktop): Aiming for all-green on desktop, though continuous checking is needed as features evolve!
 
-![Performance](https://r2.cosine.ren/i/2025/12/e93f40c340a626c4ab72212a84cf6d5d.webp)
 
-You can provide [feedback](https://cos.featurebase.app/) and check the Roadmap here. Issues are also welcome — but since this is a personal project, feel free to fork and customize!
 
-![](https://r2.cosine.ren/i/2026/01/f1c239b4adf7771f10b954c389d87a74.webp)
-![](https://r2.cosine.ren/i/2026/01/c962f82503abf68eb1f21b835873f241.webp)
 
 ## Deployment
 
@@ -38,8 +31,8 @@ Supports automatic deployment on mainstream platforms including **Vercel** and *
 
 ### One-Click Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/cosZone/astro-koharu&project-name=astro-koharu&repository-name=astro-koharu)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/cosZone/astro-koharu)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Aegink/astro-koharu-blog&project-name=astro-koharu&repository-name=astro-koharu)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Aegink/astro-koharu-blog)
 
 ### Docker Deployment
 
@@ -61,7 +54,7 @@ docker compose --env-file ./.env -f docker/docker-compose.yml up -d --build
 1. Clone the project
 
 ```bash
-git clone https://github.com/cosZone/astro-koharu
+git clone https://github.com/Aegink/astro-koharu-blog
 ```
 
 2. Enter the project directory and install dependencies
@@ -104,7 +97,7 @@ pnpm dev
 - [Toggleable] AI-powered automatic summary generation
 - [Toggleable] Christmas special: snowfall, Christmas colors, Santa hats, string lights, and other festive effects
 - Serverless site announcement system: Manage announcements via config file with time controls, stacking, custom colors, and hover-to-read
-- Styled [RSS](https://blog.cosine.ren/rss.xml) feed page
+- Styled [RSS](https://wangyouboke.com/rss.xml) feed page
 - **Koharu CLI**: Interactive command-line tool for backup/restore, content generation, and backup management
 - **Local lightweight CMS app**: Run `pnpm cms` to launch a standalone CMS interface with article management, in-browser editing, and Markdown preview. The edit button on article pages supports one-click jump to local editors (VS Code / Cursor / Zed), configured in the `dev` section of `config/site.yaml`. (A backend version may be considered later; this version is static)
 
@@ -305,30 +298,23 @@ comment:
 
 ## Feature Showcase
 
-- Gradient placeholders before images load for better visual experience - [Blog Post](https://blog.cosine.ren/post/astro-lqip-implementation)
-  ![LQIP](https://r2.cosine.ren/i/2025/12/40e44c8ac166183d5f823d7aa81fa792.webp)
+- Gradient placeholders before images load for better visual experience - [Blog Post](https://wangyouboke.com/post/astro-lqip-implementation)
 - Smooth dark mode transition animation powered by View Transitions API
-  ![Theme Transition](https://r2.cosine.ren/i/2025/12/418c7602ce115660bed9db66739370d5.gif)
-- Markdown enhancement - Link embed feature - [Example](https://blog.cosine.ren/post/my-claude-code-record-2)
-  ![Link Embed](https://r2.cosine.ren/i/2026/01/6804aa167fd4cf7022a9b511d52017ce.webp)
+- Markdown enhancement - Link embed feature - [Example](https://wangyouboke.com/post/my-claude-code-record-2)
 - Markdown enhancement - Create beautiful infographics with [@antv/infographic](https://github.com/antvis/Infographic)
-  [Infographic Guide](https://koharu.cosine.ren/post/infographic-guide)
-  ![Infographic Syntax](https://r2.cosine.ren/i/2026/01/581893e18557bcb837177cb2d6fb7af7.webp)
-- Styled RSS feed page - [Example](https://blog.cosine.ren/rss.xml)
-  ![RSS Feed](https://r2.cosine.ren/i/2026/01/4476f67d1acea2e0991cc70d1d3cf6a1.webp)
+  [Infographic Guide](https://wangyouboke.com/post/infographic-guide)
+- Styled RSS feed page - [Example](https://wangyouboke.com/rss.xml)
 - Announcement system
-  ![Announcements](https://r2.cosine.ren/i/2026/01/a4660955f52438b3cc2d21bdc931bbd4.gif)
 - Shoka-compatible Markdown syntax - Admonition blocks, collapsible blocks, tab cards, text effects, spoiler text, ruby annotations, quizzes, and more
 - Audio/video player - Supports NetEase Cloud Music playlists and video playback
 
 ## Blogs Using This Theme
 
 > Inspired by [Zhilu's Blog](https://github.com/L33Z22L11/blog-v3), here's a showcase of blogs using this theme.\
-> Join QQ group 598022684 for discussion, or chat in the comments of my [frontend channel](https://t.me/cosine_front_end).
 
 | Blog                                         | Author     | Repository                                                      | Notes                                   |
 | -------------------------------------------- | ---------- | --------------------------------------------------------------- | --------------------------------------- |
-| **[Cosine's Blog](http://blog.cosine.ren/)** | **cosine** | [cosZone/astro-koharu](https://github.com/cosZone/astro-koharu) | This theme                              |
+| **[Aegink Blog](https://wangyouboke.com/)** | **Aegink** | [Aegink/astro-koharu-blog](https://github.com/Aegink/astro-koharu-blog) | Current blog                            |
 | [XueHua's Blog](https://xhblog.top/)         | XueHua-s   | [XueHua-s/astro-snow](https://github.com/XueHua-s/astro-snow)   | Simplified features, added a start page |
 | [Ksable's Blog](https://blog.ksable.top/)    | Ksable     | -                                                               | Modified / added some features          |
 
@@ -349,7 +335,7 @@ Thanks to the following projects for providing inspiration and reference for ast
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=cosZone/astro-koharu&type=date&legend=top-left)](https://www.star-history.com/#cosZone/astro-koharu&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=Aegink/astro-koharu-blog&type=date&legend=top-left)](https://www.star-history.com/#Aegink/astro-koharu-blog&type=date&legend=top-left)
 
 ## License
 

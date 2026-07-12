@@ -3,7 +3,7 @@ site:
   alternate: Aegink
   subtitle: WA 的一声就哭了
   name: Aegink
-  description: 一个基于 Astro 的现代化博客主题
+  description: 忘忧的个人博客，记录技术、工具、阅读与生活。
   avatar: /img/avatar.webp
   showLogo: true
   author: 忘忧
@@ -16,6 +16,8 @@ site:
     - Astro
     - 技术
     - 前端
+    - Aegink
+    - 忘忧
   enableSlugTransliteration: false
 i18n:
   defaultLocale: zh
@@ -66,18 +68,14 @@ featuredSeries:
     icon: ri:newspaper-line
     enabled: true
     links:
-      github: https://github.com/your-username/your-repo
+      github: https://github.com/Aegink/astro-koharu-blog
       rss: /rss.xml
-    description: '这是周刊/系列文章功能的示例配置。 你可以用它来发布定期更新的系列内容，如技术周刊、读书笔记系列等。 设置 enabled: false 可以关闭此功能。'
+    description: 记录技术、工具、阅读与生活里的阶段性内容。
 social:
   github:
-    url: https://github.com/your-username
+    url: https://github.com/Aegink
     icon: ri:github-fill
     color: '#191717'
-  email:
-    url: mailto:your@email.com
-    icon: ri:mail-line
-    color: '#55acd5'
   rss:
     url: /rss.xml
     icon: ri:rss-line
@@ -87,7 +85,7 @@ friends:
     title: 友情链接
     subtitle: 欢迎交换友链！
     applyTitle: 申请友链
-    applyDesc: 请在本页留言，格式如下
+    applyDesc: 可通过 GitHub 联系我交换友链，格式如下
     exampleYaml: |
       - site: 你的博客名称 # 站点名称
         url: https://your-blog.com/ # 站点网址
@@ -95,31 +93,7 @@ friends:
         desc: 站点简介 # 站点简介
         image: https://your-blog.com/avatar.jpg # 头像链接
         color: "#ffc0cb" # 主题色（可选）
-  data:
-    - site: 余弦の博客
-      url: https://blog.cosine.ren
-      owner: cos
-      desc: FE / ACG / 手工 / 深色模式强迫症 / INFP / 兴趣广泛养两只猫的老宅女 / remote
-      image: https://blog.cosine.ren/img/avatar.webp
-      color: '#ed788b'
-    - site: 示例博客 A
-      url: https://example-a.com
-      owner: Alice
-      desc: 一个热爱技术的开发者
-      image: https://api.dicebear.com/7.x/avataaars/svg?seed=Alice
-      color: '#BEDCFF'
-    - site: 示例博客 B
-      url: https://example-b.com
-      owner: Bob
-      desc: 分享生活与技术的小站
-      image: https://api.dicebear.com/7.x/avataaars/svg?seed=Bob
-      color: '#FBC1CC'
-    - site: 示例博客 C
-      url: https://example-c.com
-      owner: Carol
-      desc: 记录学习与成长的地方
-      image: https://api.dicebear.com/7.x/avataaars/svg?seed=Carol
-      color: '#ABDCFF'
+  data: []
 announcements: []
 content:
   addBlankTarget: true
@@ -185,7 +159,7 @@ navigation:
 comment:
   provider: none
   twikoo:
-    envId: https://your-twikoo.vercel.app
+    envId: ''
   giscus:
     repo: ''
     repoId: ''
@@ -202,9 +176,9 @@ comment:
     siteId: ''
 analytics:
   umami:
-    enabled: true
-    id: your-umami-id
-    endpoint: https://stats.example.com
+    enabled: false
+    id: ''
+    endpoint: ''
 seo:
   robots: null
 bgm:
@@ -232,11 +206,8 @@ christmas:
     maxIterations: 8
     mobileMaxLayers: 4
     mobileMaxIterations: 6
-bangumi:
-  userId: cosine
-  icon: ri:bilibili-fill
 dev:
-  localProjectPath: /Users/yourname/path/to/astro-koharu
+  localProjectPath: F:/Boke/astro-koharu
   contentRelativePath: src/content/blog
   editors:
     - id: vscode

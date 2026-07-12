@@ -309,12 +309,12 @@ export async function GET(context: APIContext) {
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>余弦の博客</title>
-    <link>https://blog.cosine.ren/</link>
+    <title>忘忧の博客</title>
+    <link>https://wangyouboke.com/</link>
     <description>WA 的一声就哭了</description>
     <item>
       <title>React Hooks 学习笔记</title>
-      <link>https://blog.cosine.ren/post/react-hooks</link>
+      <link>https://wangyouboke.com/post/react-hooks</link>
       <pubDate>Mon, 15 Jan 2024 00:00:00 GMT</pubDate>
       <description>深入理解 React Hooks...</description>
     </item>
@@ -476,7 +476,7 @@ const jsonLd = {
   "author": {
     "@type": "Person",
     "name": "cos",
-    "url": "https://blog.cosine.ren/"
+    "url": "https://wangyouboke.com/"
   },
   "datePublished": "2024-01-15"
 }

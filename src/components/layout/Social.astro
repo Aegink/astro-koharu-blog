@@ -8,7 +8,7 @@ import { capitalize } from 'es-toolkit';
 <!-- TODO: use CSS squircle corner-shape replace the rounded-xl border-radius with a squircle corner-shape (https://www.squircle.style/) -->
 <div class="mt-2 grid grid-cols-3 gap-2">
   {
-    Object.entries(socialConfig).map(([key, config]) => {
+    Object.entries(socialConfig).filter(([, config]) => config.url).map(([key, config]) => {
       const { url, icon, color } = config;
       return (
         <div>

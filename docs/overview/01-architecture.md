@@ -114,7 +114,7 @@ import pagefind from 'astro-pagefind';
 
 export default defineConfig({
   // 1. 站点 URL（用于生成绝对路径）
-  site: siteConfig.site, // 'https://blog.cosine.ren/'
+  site: siteConfig.site, // 'https://wangyouboke.com/'
 
   // 2. Markdown 处理配置
   markdown: {
@@ -154,8 +154,8 @@ export default defineConfig({
     umami({
       // 访问统计
       id: '14de13b0-3220-4beb-8f0b-e08b17724991',
-      endpointUrl: 'https://stats.cosine.ren',
-      hostUrl: 'https://stats.cosine.ren',
+      endpointUrl: 'https://stats.example.com',
+      hostUrl: 'https://stats.example.com',
     }),
     pagefind(), // 静态搜索
   ],

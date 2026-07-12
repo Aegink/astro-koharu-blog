@@ -1,5 +1,6 @@
 import yaml from 'js-yaml';
 
+// biome-ignore lint/suspicious/noExplicitAny: YAML 配置结构开放，编辑器需要保留宽松记录类型。
 export type YamlRecord = Record<string, any>;
 
 export type ConfigTab =
@@ -310,11 +311,18 @@ export const emptyForm: ConfigForm = {
   categoryMap: '',
 };
 
-const asRecord = (value: unknown): YamlRecord => (value && typeof value === 'object' && !Array.isArray(value) ? (value as YamlRecord) : {});
-const asArray = (value: unknown): YamlRecord[] => (Array.isArray(value) ? value.filter((item) => item && typeof item === 'object').map((item) => item as YamlRecord) : []);
+const asRecord = (value: unknown): YamlRecord =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as YamlRecord) : {};
+const asArray = (value: unknown): YamlRecord[] =>
+  Array.isArray(value) ? value.filter((item) => item && typeof item === 'object').map((item) => item as YamlRecord) : [];
 const splitLine = (line: string) => line.split('|').map((item) => item.trim());
-const parseList = (value: string) => value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
-const lineList = (value: unknown): string => (Array.isArray(value) ? value.filter((item) => typeof item === 'string').join('\n') : '');
+const parseList = (value: string) =>
+  value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+const lineList = (value: unknown): string =>
+  Array.isArray(value) ? value.filter((item) => typeof item === 'string').join('\n') : '';
 const stringValue = (value: unknown): string => (value === undefined || value === null ? '' : String(value));
 const boolText = (value: unknown): string => (typeof value === 'boolean' ? String(value) : stringValue(value));
 const compactText = (value: unknown): string => stringValue(value).replace(/\s+/g, ' ').trim();
@@ -345,10 +353,13 @@ function parseStringBool(value: string): string | boolean | undefined {
 }
 
 function parseNumberOrPair(value: string): number | [number, number] | undefined {
-  const parts = value.split(',').map((item) => Number(item.trim())).filter(Number.isFinite);
-  if (parts.length >= 2) return [parts[0]!, parts[1]!];
-  if (parts.length === 1) return parts[0];
-  return undefined;
+  const parts = value
+    .split(',')
+    .map((item) => Number(item.trim()))
+    .filter(Number.isFinite);
+  const [first, second] = parts;
+  if (first !== undefined && second !== undefined) return [first, second];
+  return first;
 }
 
 function parseLooseValue(value: string): unknown {
@@ -376,7 +387,9 @@ function dumpLooseValue(value: unknown): string {
 }
 
 function mapToLines(map: Record<string, string>): string {
-  return Object.entries(map).map(([name, slug]) => `${name}: ${slug}`).join('\n');
+  return Object.entries(map)
+    .map(([name, slug]) => `${name}: ${slug}`)
+    .join('\n');
 }
 
 function parseCategoryMap(value: string): Record<string, string> {
@@ -387,7 +400,9 @@ function parseCategoryMap(value: string): Record<string, string> {
       .filter(Boolean)
       .map((line) => {
         const index = line.indexOf(':');
-        return index === -1 ? [line, line.toLowerCase().replace(/\s+/g, '-')] : [line.slice(0, index).trim(), line.slice(index + 1).trim()];
+        return index === -1
+          ? [line, line.toLowerCase().replace(/\s+/g, '-')]
+          : [line.slice(0, index).trim(), line.slice(index + 1).trim()];
       })
       .filter(([name, slug]) => name && slug),
   );
@@ -395,10 +410,18 @@ function parseCategoryMap(value: string): Record<string, string> {
 
 function parseSocialLinks(value: string, current: YamlRecord): YamlRecord {
   const social: YamlRecord = {};
-  for (const line of value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) {
+  for (const line of value
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean)) {
     const [key, url, icon, color] = splitLine(line);
     if (!key || !url) continue;
-    social[key] = { ...(asRecord(current[key])), url, icon: icon || asRecord(current[key]).icon || 'ri:links-line', ...(color ? { color } : {}) };
+    social[key] = {
+      ...asRecord(current[key]),
+      url,
+      icon: icon || asRecord(current[key]).icon || 'ri:links-line',
+      ...(color ? { color } : {}),
+    };
   }
   return social;
 }
@@ -442,8 +465,8 @@ function parseNavigation(value: string) {
     const [name, path, icon, nameKey] = splitLine(rawLine.trim());
     if (!name) continue;
     const item: YamlRecord = { name, ...(nameKey ? { nameKey } : {}), ...(path ? { path } : {}), ...(icon ? { icon } : {}) };
-    if (isChild && items.length > 0) {
-      const parent = items[items.length - 1]!;
+    const parent = items[items.length - 1];
+    if (isChild && parent) {
       parent.children = [...(Array.isArray(parent.children) ? parent.children : []), item];
     } else {
       items.push(item);
@@ -457,7 +480,14 @@ function parseFriendsData(value: string) {
     .split(/\r?\n/)
     .map((line) => splitLine(line))
     .filter(([site, url]) => site && url)
-    .map(([site, url, owner, desc, image, color]) => ({ site, url, owner: owner || '', desc: desc || '', image: image || '', ...(color ? { color } : {}) }));
+    .map(([site, url, owner, desc, image, color]) => ({
+      site,
+      url,
+      owner: owner || '',
+      desc: desc || '',
+      image: image || '',
+      ...(color ? { color } : {}),
+    }));
 }
 
 function parseAnnouncements(value: string) {
@@ -474,7 +504,15 @@ function parseAnnouncements(value: string) {
       publishDate: publishDate || new Date().toISOString().slice(0, 10),
       ...(startDate ? { startDate } : {}),
       ...(endDate ? { endDate } : {}),
-      ...(linkUrl ? { link: { url: linkUrl, ...(linkText ? { text: linkText } : {}), ...(linkExternal ? { external: parseBool(linkExternal) } : {}) } } : {}),
+      ...(linkUrl
+        ? {
+            link: {
+              url: linkUrl,
+              ...(linkText ? { text: linkText } : {}),
+              ...(linkExternal ? { external: parseBool(linkExternal) } : {}),
+            },
+          }
+        : {}),
       ...(color ? { color } : {}),
     }));
 }
@@ -486,7 +524,10 @@ function parseBgmAudio(value: string) {
     .filter((parts) => Boolean(parts[0] && parts[1]))
     .map((parts) => ({
       title: parts[0] || '',
-      list: (parts[1] || '').split(',').map((item) => item.trim()).filter(Boolean),
+      list: (parts[1] || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
     }));
 }
 
@@ -495,7 +536,11 @@ function parseLocales(value: string, defaultLocale: string) {
     .split(/\r?\n/)
     .map((line) => splitLine(line))
     .filter(([code]) => code)
-    .map(([code, label, enabled]) => ({ code, ...(label ? { label } : {}), enabled: enabled ? parseBool(enabled, true) : true }));
+    .map(([code, label, enabled]) => ({
+      code,
+      ...(label ? { label } : {}),
+      enabled: enabled ? parseBool(enabled, true) : true,
+    }));
   return locales.length ? locales : [{ code: defaultLocale || 'zh', label: '中文', enabled: true }];
 }
 
@@ -542,8 +587,7 @@ function setOptional(target: YamlRecord, key: string, value: unknown) {
     (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0)
   ) {
     delete target[key];
-  }
-  else target[key] = value;
+  } else target[key] = value;
 }
 
 export function toForm(content: string): ConfigForm {
@@ -594,57 +638,76 @@ export function toForm(content: string): ConfigForm {
     githubUrl: asRecord(social.github).url || '',
     emailUrl: asRecord(social.email).url || '',
     rssUrl: asRecord(social.rss).url || '/rss.xml',
-    socialLinks: Object.entries(social).map(([key, item]) => `${key} | ${asRecord(item).url || ''} | ${asRecord(item).icon || ''} | ${asRecord(item).color || ''}`).join('\n'),
+    socialLinks: Object.entries(social)
+      .map(
+        ([key, item]) => `${key} | ${asRecord(item).url || ''} | ${asRecord(item).icon || ''} | ${asRecord(item).color || ''}`,
+      )
+      .join('\n'),
 
-    featuredCategories: asArray(config.featuredCategories).map((item) => `${item.label || ''} | ${item.link || ''} | ${item.image || ''} | ${item.description || ''}`).join('\n'),
-    navigation: asArray(config.navigation).flatMap((item) => {
-      const row = `${item.name || ''} | ${item.path || ''} | ${item.icon || ''} | ${item.nameKey || ''}`;
-      const children = asArray(item.children).map((child) => `  ${child.name || ''} | ${child.path || ''} | ${child.icon || ''} | ${child.nameKey || ''}`);
-      return [row, ...children];
-    }).join('\n'),
+    featuredCategories: asArray(config.featuredCategories)
+      .map((item) => `${item.label || ''} | ${item.link || ''} | ${item.image || ''} | ${item.description || ''}`)
+      .join('\n'),
+    navigation: asArray(config.navigation)
+      .flatMap((item) => {
+        const row = `${item.name || ''} | ${item.path || ''} | ${item.icon || ''} | ${item.nameKey || ''}`;
+        const children = asArray(item.children).map(
+          (child) => `  ${child.name || ''} | ${child.path || ''} | ${child.icon || ''} | ${child.nameKey || ''}`,
+        );
+        return [row, ...children];
+      })
+      .join('\n'),
     defaultCoverList: lineList(config.defaultCoverList),
-    featuredSeries: asArray(config.featuredSeries).map((item) => {
-      const links = asRecord(item.links);
-      return [
-        item.slug || '',
-        item.categoryName || '',
-        item.label || '',
-        item.fullName || '',
-        item.cover || '',
-        item.icon || '',
-        item.enabled === undefined ? '' : String(item.enabled),
-        item.highlightOnHome === undefined ? '' : String(item.highlightOnHome),
-        links.github || '',
-        links.rss || '',
-        links.chrome || '',
-        links.docs || '',
-        compactText(item.description),
-      ].join(' | ');
-    }).join('\n'),
+    featuredSeries: asArray(config.featuredSeries)
+      .map((item) => {
+        const links = asRecord(item.links);
+        return [
+          item.slug || '',
+          item.categoryName || '',
+          item.label || '',
+          item.fullName || '',
+          item.cover || '',
+          item.icon || '',
+          item.enabled === undefined ? '' : String(item.enabled),
+          item.highlightOnHome === undefined ? '' : String(item.highlightOnHome),
+          links.github || '',
+          links.rss || '',
+          links.chrome || '',
+          links.docs || '',
+          compactText(item.description),
+        ].join(' | ');
+      })
+      .join('\n'),
 
     friendsTitle: friendsIntro.title || '',
     friendsSubtitle: friendsIntro.subtitle || '',
     friendsApplyTitle: friendsIntro.applyTitle || '',
     friendsApplyDesc: friendsIntro.applyDesc || '',
     friendsExampleYaml: friendsIntro.exampleYaml || '',
-    friendsData: asArray(friends.data).map((item) => `${item.site || ''} | ${item.url || ''} | ${item.owner || ''} | ${item.desc || ''} | ${item.image || ''} | ${item.color || ''}`).join('\n'),
-    announcements: asArray(config.announcements).map((item) => {
-      const link = asRecord(item.link);
-      return [
-        item.id || '',
-        item.title || '',
-        item.content || '',
-        item.type || 'info',
-        item.priority ?? 1,
-        item.publishDate || '',
-        item.startDate || '',
-        item.endDate || '',
-        link.url || '',
-        link.text || '',
-        link.external === undefined ? '' : String(link.external),
-        item.color || '',
-      ].join(' | ');
-    }).join('\n'),
+    friendsData: asArray(friends.data)
+      .map(
+        (item) =>
+          `${item.site || ''} | ${item.url || ''} | ${item.owner || ''} | ${item.desc || ''} | ${item.image || ''} | ${item.color || ''}`,
+      )
+      .join('\n'),
+    announcements: asArray(config.announcements)
+      .map((item) => {
+        const link = asRecord(item.link);
+        return [
+          item.id || '',
+          item.title || '',
+          item.content || '',
+          item.type || 'info',
+          item.priority ?? 1,
+          item.publishDate || '',
+          item.startDate || '',
+          item.endDate || '',
+          link.url || '',
+          link.text || '',
+          link.external === undefined ? '' : String(link.external),
+          item.color || '',
+        ].join(' | ');
+      })
+      .join('\n'),
 
     addBlankTarget: contentOptions.addBlankTarget !== false,
     smoothScroll: contentOptions.smoothScroll !== false,
@@ -722,7 +785,9 @@ export function toForm(content: string): ConfigForm {
 
     bgmEnabled: bgm.enabled !== false,
     bgmMetingApi: bgm.metingApi || '',
-    bgmAudio: asArray(bgm.audio).map((item) => `${item.title || ''} | ${Array.isArray(item.list) ? item.list.join(', ') : ''}`).join('\n'),
+    bgmAudio: asArray(bgm.audio)
+      .map((item) => `${item.title || ''} | ${Array.isArray(item.list) ? item.list.join(', ') : ''}`)
+      .join('\n'),
     bangumiEnabled: Boolean(bangumi.userId),
     bangumiUserId: bangumi.userId || '',
     bangumiLabel: bangumi.label || '',
@@ -744,14 +809,26 @@ export function toForm(content: string): ConfigForm {
 
     seoRobotsEnabled: Boolean(asRecord(config.seo).robots),
     seoRobotsHost: Boolean(robots.host),
-    seoRobotsPolicy: asArray(robots.policy).map((item) => `${item.userAgent || '*'} | ${Array.isArray(item.allow) ? item.allow.join(', ') : item.allow || ''} | ${Array.isArray(item.disallow) ? item.disallow.join(', ') : item.disallow || ''} | ${item.crawlDelay || ''}`).join('\n'),
+    seoRobotsPolicy: asArray(robots.policy)
+      .map(
+        (item) =>
+          `${item.userAgent || '*'} | ${Array.isArray(item.allow) ? item.allow.join(', ') : item.allow || ''} | ${Array.isArray(item.disallow) ? item.disallow.join(', ') : item.disallow || ''} | ${item.crawlDelay || ''}`,
+      )
+      .join('\n'),
 
     i18nDefaultLocale: i18n.defaultLocale || 'zh',
-    i18nLocales: asArray(i18n.locales).map((item) => `${item.code || ''} | ${item.label || ''} | ${item.enabled === undefined ? 'true' : String(item.enabled)}`).join('\n') || emptyForm.i18nLocales,
+    i18nLocales:
+      asArray(i18n.locales)
+        .map(
+          (item) => `${item.code || ''} | ${item.label || ''} | ${item.enabled === undefined ? 'true' : String(item.enabled)}`,
+        )
+        .join('\n') || emptyForm.i18nLocales,
 
     devLocalProjectPath: dev.localProjectPath || '',
     devContentRelativePath: dev.contentRelativePath || 'src/content/blog',
-    devEditors: asArray(dev.editors).map((item) => `${item.id || ''} | ${item.name || ''} | ${item.icon || ''} | ${item.urlTemplate || ''}`).join('\n'),
+    devEditors: asArray(dev.editors)
+      .map((item) => `${item.id || ''} | ${item.name || ''} | ${item.icon || ''} | ${item.urlTemplate || ''}`)
+      .join('\n'),
 
     categoryMap: mapToLines(asRecord(config.categoryMap) as Record<string, string>),
   };
@@ -780,14 +857,38 @@ export function buildConfig(content: string, form: ConfigForm): string {
     enableSlugTransliteration: form.enableSlugTransliteration,
   };
   setOptional(site, 'breadcrumbHome', form.breadcrumbHome.trim());
-  if (form.icpText.trim()) site.icp = form.icpLink.trim() ? { text: form.icpText.trim(), link: form.icpLink.trim() } : form.icpText.trim();
+  if (form.icpText.trim())
+    site.icp = form.icpLink.trim() ? { text: form.icpText.trim(), link: form.icpLink.trim() } : form.icpText.trim();
   else delete site.icp;
   config.site = site;
 
   const social = parseSocialLinks(form.socialLinks, currentSocial);
-  social.github = { ...(asRecord(social.github)), url: form.githubUrl.trim(), icon: asRecord(social.github).icon || 'ri:github-fill', color: asRecord(social.github).color || '#191717' };
-  social.email = { ...(asRecord(social.email)), url: form.emailUrl.trim(), icon: asRecord(social.email).icon || 'ri:mail-line', color: asRecord(social.email).color || '#55acd5' };
-  social.rss = { ...(asRecord(social.rss)), url: form.rssUrl.trim() || '/rss.xml', icon: asRecord(social.rss).icon || 'ri:rss-line', color: asRecord(social.rss).color || '#ff6600' };
+  if (form.githubUrl.trim()) {
+    social.github = {
+      ...asRecord(social.github),
+      url: form.githubUrl.trim(),
+      icon: asRecord(social.github).icon || 'ri:github-fill',
+      color: asRecord(social.github).color || '#191717',
+    };
+  } else {
+    delete social.github;
+  }
+  if (form.emailUrl.trim()) {
+    social.email = {
+      ...asRecord(social.email),
+      url: form.emailUrl.trim(),
+      icon: asRecord(social.email).icon || 'ri:mail-line',
+      color: asRecord(social.email).color || '#55acd5',
+    };
+  } else {
+    delete social.email;
+  }
+  social.rss = {
+    ...asRecord(social.rss),
+    url: form.rssUrl.trim() || '/rss.xml',
+    icon: asRecord(social.rss).icon || 'ri:rss-line',
+    color: asRecord(social.rss).color || '#ff6600',
+  };
   config.social = social;
 
   config.featuredCategories = parseFeaturedCategories(form.featuredCategories);

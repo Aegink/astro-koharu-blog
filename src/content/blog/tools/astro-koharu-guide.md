@@ -16,13 +16,13 @@ categories:
 
 一份完整的 astro-koharu 博客系统使用指南，帮助你快速上手并充分利用所有功能特性。
 
-https://github.com/cosZone/astro-koharu
+https://github.com/Aegink/astro-koharu-blog
 
 ## 快速开始
 
 ### 项目简介
 
-astro-koharu 是一个基于 Astro 5.x 构建的现代化博客系统，从 Hexo 迁移而来，设计灵感和初衷都来自 [Shoka](https://github.com/amehime/hexo-theme-shoka) 主题。欢迎 [fork](https://github.com/cosZone/astro-koharu/fork) 出来制作自己的主题。
+astro-koharu 是一个基于 Astro 5.x 构建的现代化博客系统，从 Hexo 迁移而来，设计灵感和初衷都来自 [Shoka](https://github.com/amehime/hexo-theme-shoka) 主题。欢迎 [fork](https://github.com/Aegink/astro-koharu-blog/fork) 出来制作自己的主题。
 
 **核心特点：**
 
@@ -46,7 +46,7 @@ astro-koharu 是一个基于 Astro 5.x 构建的现代化博客系统，从 Hexo
 
 ```bash
 # 克隆项目
-git clone https://github.com/cosZone/astro-koharu.git
+git clone https://github.com/Aegink/astro-koharu-blog.git
 cd astro-koharu
 
 # 安装依赖
@@ -66,7 +66,7 @@ pnpm preview
 
 使用 Vercel 进行一键部署：
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/cosZone/astro-koharu&project-name=astro-koharu&repository-name=astro-koharu)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Aegink/astro-koharu-blog&project-name=astro-koharu&repository-name=astro-koharu)
 
 ### 构建缓存说明
 
@@ -85,19 +85,19 @@ pnpm preview
 # 站点基础信息
 # =============================================================================
 site:
-  title: 余弦の博客 # 网站标题
-  alternate: cosine # 英文短名（用作 logo 文本）
+  title: 忘忧の博客 # 网站标题
+  alternate: Aegink # 英文短名（用作 logo 文本）
   subtitle: WA 的一声就哭了 # 副标题
-  name: cos # 站点作者简称
-  description: FE / ACG / 手工 / 深色模式强迫症 / INFP # 站点简介
+  name: Aegink # 站点作者简称
+  description: 忘忧的个人博客，记录技术、工具、阅读与生活。 # 站点简介
   avatar: /img/avatar.webp # 头像路径
   showLogo: true # 是否显示 logo
-  author: cos # 文章作者
-  url: https://blog.cosine.ren/ # 站点域名
+  author: 忘忧 # 文章作者
+  url: https://wangyouboke.com/ # 站点域名
   startYear: 2020 # 站点创建年份
   keywords: # SEO 关键词
-    - cos
-    - cosine
+    - 忘忧
+    - Aegink
     - 博客
     - 技术
     - 前端
@@ -107,9 +107,6 @@ site:
 
 本项目提供独立的 CMS 管理应用，支持文章管理、浏览器内编辑、Markdown 预览等功能。
 
-![](https://r2.cosine.ren/i/2026/01/a1c1d69ef48c758010e553e882e470db.webp)
-![](https://r2.cosine.ren/i/2026/01/6c6956e3b49729ddf272669f3f738f13.webp)
-![](https://r2.cosine.ren/i/2026/01/1d86afe19ed2fe921990657685393c2d.webp)
 
 **启动 CMS：**
 
@@ -1617,11 +1614,11 @@ fn main() {
 示例效果：
 
 {% links %}
-- site: 余弦の博客
-  url: https://blog.cosine.ren
-  owner: cos
-  desc: FE / ACG / 手工
-  image: https://blog.cosine.ren/img/avatar.webp
+- site: 忘忧の博客
+  url: https://wangyouboke.com
+  owner: Aegink
+  desc: 忘忧的个人博客
+  image: https://wangyouboke.com/img/avatar.webp
   color: '#ed788b'
 - site: 示例博客
   url: https://example.com
@@ -2559,7 +2556,7 @@ git commit -m "merge: resolve conflicts"
 | 检查工作区状态 | `git status --porcelain`                                               |
 | 获取当前分支   | `git rev-parse --abbrev-ref HEAD`                                      |
 | 检查 upstream  | `git remote -v`                                                        |
-| 添加 upstream  | `git remote add upstream https://github.com/cosZone/astro-koharu.git`  |
+| 添加 upstream  | `git remote add upstream https://github.com/Aegink/astro-koharu-blog.git`  |
 | 获取更新       | `git fetch upstream`                                                   |
 | 查看新提交数量 | `git rev-list --left-right --count HEAD...upstream/main`               |
 | 查看新提交列表 | `git log HEAD..upstream/main --pretty=format:"%h \| %s \| %ar \| %an"` |
@@ -3066,8 +3063,8 @@ tags:
 
 ## 更新日志
 
-查看 [CHANGELOG.md](https://github.com/cosZone/astro-koharu/blob/main/CHANGELOG.md) 了解版本更新历史。
+查看 [CHANGELOG.md](https://github.com/Aegink/astro-koharu-blog/blob/main/CHANGELOG.md) 了解版本更新历史。
 
 ---
 
-如有问题或建议，欢迎在 [GitHub Issues](https://github.com/cosZone/astro-koharu/issues) 中反馈。
+如有问题或建议，欢迎在 [GitHub Issues](https://github.com/Aegink/astro-koharu-blog/issues) 中反馈。

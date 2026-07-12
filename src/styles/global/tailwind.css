@@ -129,7 +129,7 @@
     text-shadow:
       3px 4px 2px #060000,
       -1px -1px 0px #ffffff;
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: 1px;
     line-height: 0.95;
     text-align: center;

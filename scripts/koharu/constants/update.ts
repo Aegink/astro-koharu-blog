@@ -2,10 +2,10 @@
 export const UPSTREAM_REMOTE = 'upstream';
 
 /** Upstream 仓库 URL */
-export const UPSTREAM_URL = 'https://github.com/cosZone/astro-koharu.git';
+export const UPSTREAM_URL = 'https://github.com/Aegink/astro-koharu-blog.git';
 
 /** GitHub 仓库路径 (用于 API 调用) */
-export const GITHUB_REPO = 'cosZone/astro-koharu';
+export const GITHUB_REPO = 'Aegink/astro-koharu-blog';
 
 /** 主分支名称 */
 export const MAIN_BRANCH = 'main';

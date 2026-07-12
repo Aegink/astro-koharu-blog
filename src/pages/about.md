@@ -3,32 +3,28 @@ layout: ../layouts/PageLayout.astro
 title: "About"
 coverTitle: "关于我"
 date: 2025-01-03 01:01:33
-description: "关于我？"
+description: "关于忘忧 / Aegink"
 ---
 
-## 你好，这里是余弦
+## 你好，这里是忘忧
 
-[![github badge](https://img.shields.io/badge/dynamic/json?color=blue&label=Github&query=%24.data.totalSubs&url=https%3A%2F%2Fapi.spencerwoo.com%2Fsubstats%2F%3Fsource%3Dgithub%26queryKey%3Dyusixian)](https://github.com/yusixian)
+Aegink = 忘忧。
 
-cosine = 余弦 = cos
+这里是我的个人博客，用来记录技术实践、工具折腾、阅读笔记和生活里的阶段性想法。内容不追求固定格式，更看重把遇到的问题、解决过程和复盘沉淀下来，方便以后回看。
 
-愿热情永存，愿热爱不灭，愿生活无憾
+### 这个博客会写什么
 
-> 我们 都只是无名之辈 \
-> 做你自己最喜欢的事 \
-> 像花一样 肆意绽放 \
-> 不去管 有没有人欣赏
+- 技术开发、前端实践和项目优化记录。
+- 常用工具、自动化流程和效率配置。
+- 阅读、随笔和旧博客内容整理。
+- 值得长期保存的学习笔记。
 
 ### 找到我
 
-个人 Telegram 前端频道：日常碎碎念，偶尔掉落优质前端博文推荐、学习资源等
+GitHub：
 
-https://t.me/cosine_front_end
+https://github.com/Aegink
 
-Gitbook 前端学习记录
+博客：
 
-https://book.cosine.ren/
-
-[![GitHub State](https://git-stats.cosine.ren/api?username=yusixian&theme=dark&show_icons=true&hide_border=true)](https://github.com/anuraghazra/github-readme-stats)
-
-[![GitHub Streak](https://github-readme-streak-stats-rust-tau.vercel.app?user=yusixian&theme=dark&date_format=%5BY%20%5DM%20&hide_border=true)](https://git.io/streak-stats)
+https://wangyouboke.com/

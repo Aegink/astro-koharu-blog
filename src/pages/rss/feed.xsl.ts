@@ -7,6 +7,7 @@ const toRemixIconClass = (icon: string) => icon.replace(':', '-');
 
 export async function GET(_context: APIContext) {
   const socialLinks = Object.entries(socialConfig)
+    .filter(([, config]) => config.url)
     .map(
       ([key, config]) =>
         `<a href="${config.url}" target="_blank" class="social-btn ${key}" title="${capitalize(key)}">

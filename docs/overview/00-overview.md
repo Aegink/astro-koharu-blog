@@ -229,15 +229,15 @@ import type { BlogPost } from '@types/blog';  // src/types/blog.ts
 ```typescript
 export const siteConfig = {
   // 基本信息
-  title: '余弦の博客',
-  alternate: 'cosine',
+  title: '忘忧の博客',
+  alternate: 'Aegink',
   subtitle: 'WA 的一声就哭了',
   name: 'cos',
   description: 'FE / ACG / 手工 / 深色模式强迫症...',
 
   // 资源
   avatar: '/img/avatar.webp',
-  site: 'https://blog.cosine.ren/',
+  site: 'https://wangyouboke.com/',
   startYear: 2020,
 
   // 特色分类（首页展示）

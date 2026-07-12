@@ -934,7 +934,7 @@ export function SiteConfigEditor() {
                           <TextInput
                             value={form.bangumiUserId}
                             onChange={(e) => updateForm('bangumiUserId', e.target.value)}
-                            placeholder="cosine"
+                            placeholder="your-bangumi-id"
                             disabled={!form.bangumiEnabled}
                           />
                         </Field>

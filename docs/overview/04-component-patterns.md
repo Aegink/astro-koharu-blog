@@ -6,7 +6,7 @@
 
 ### 选择指南
 
-```
+```plain
 ┌─────────────────────────────────────────────────────────────┐
 │                     需要交互/状态吗？                        │
 └─────────────────────────────────────────────────────────────┘
@@ -225,8 +225,8 @@ const FallbackComponent = () => {
   return (
     <div className="flex-center-y w-full gap-2 py-6">
       Oops, Something wrong! Please contact to{' '}
-      <a href="mailto:i@cosine.ren" className="text-blue-500">
-        i@cosine.ren
+      <a href="https://github.com/Aegink" className="text-blue-500">
+        Aegink
       </a>
       or
       <Button onClick={() => window.location.reload()}>
@@ -490,7 +490,7 @@ export default DropdownNavWithErrorBoundary;
 
 ## 组件组织结构
 
-```
+```plain
 src/components/
 ├── common/              # 通用工具组件
 │   ├── ErrorBoundary.tsx
